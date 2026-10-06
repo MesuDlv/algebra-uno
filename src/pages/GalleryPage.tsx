@@ -3,9 +3,13 @@ import { generateFullDeck } from '../engine/deckGenerator';
 import { Card as CardType, CardColor, CardType as TypeOfCard } from '../types/card';
 import { Card } from '../components/card/Card';
 import { CardZoomModal } from '../components/card/CardZoomModal';
-import { Filter, Eye, Sparkles, BookOpen } from 'lucide-react';
+import { Filter, Eye, Sparkles, BookOpen, ArrowLeft } from 'lucide-react';
 
-export function GalleryPage() {
+interface GalleryPageProps {
+  onBack?: () => void;
+}
+
+export function GalleryPage({ onBack }: GalleryPageProps = {}) {
   const deck = useMemo(() => generateFullDeck(), []);
   const [selectedColor, setSelectedColor] = useState<CardColor | 'all'>('all');
   const [selectedType, setSelectedType] = useState<TypeOfCard | 'all'>('all');
@@ -25,9 +29,18 @@ export function GalleryPage() {
       {/* Top Navbar */}
       <header className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-white/15">
         <div>
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="inline-flex items-center gap-1.5 px-3 py-1 mb-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/10 transition"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Volver al Menú Principal
+            </button>
+          )}
           <div className="flex items-center gap-2">
             <span className="bg-yellow-400 text-black text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-              Fase 2
+              108 Cartas
             </span>
             <span className="text-white/80 text-xs font-semibold">108 Cartas Verificadas</span>
           </div>
