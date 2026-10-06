@@ -91,11 +91,12 @@ describe('Generador del Mazo ALGEBRA UNO (deckGenerator)', () => {
       });
     });
 
-    it('todas las expresiones espejo de +2 simplifican a 2 para CUALQUIER valor de la variable', () => {
+    it('todas las expresiones espejo de +2 simplifican a 2 y no contienen "= 2"', () => {
       const draw2Cards = deck.filter((c) => c.type === 'draw2');
       const testValues = [-100, -10, -1, 0, 1, 2, 5, 23, 77, 999];
 
       draw2Cards.forEach((card) => {
+        expect(card.expressionLatex).not.toContain('= 2');
         const evalFn = card.metadata?.evalFn;
         expect(evalFn).toBeDefined();
 
@@ -105,11 +106,12 @@ describe('Generador del Mazo ALGEBRA UNO (deckGenerator)', () => {
       });
     });
 
-    it('todas las expresiones espejo de comodines +4 simplifican a 4 para CUALQUIER valor de x', () => {
+    it('todas las expresiones espejo de comodines +4 simplifican a 4 y no contienen "= 4"', () => {
       const wild4Cards = deck.filter((c) => c.type === 'wild4');
       const testValues = [-100, -10, -1, 0, 1, 2, 4, 15, 88, 1000];
 
       wild4Cards.forEach((card) => {
+        expect(card.expressionLatex).not.toContain('= 4');
         const evalFn = card.metadata?.evalFn;
         expect(evalFn).toBeDefined();
 
@@ -119,13 +121,13 @@ describe('Generador del Mazo ALGEBRA UNO (deckGenerator)', () => {
       });
     });
 
-    it('todas las cartas de bloqueo (skip) representan una división entre cero en el denominador', () => {
+    it('todas las cartas de bloqueo son igualdades que terminan en 1/0 o 0/0', () => {
       const skipCards = deck.filter((c) => c.type === 'skip');
 
       skipCards.forEach((card) => {
         expect(card.metadata?.denominator).toBe(0);
-        // Debe tener \frac{...}{0} en la expresión LaTeX
-        expect(card.expressionLatex).toMatch(/\\frac\{[^}]*\}\{0\}/);
+        // Debe ser una igualdad que termina en = \frac{1}{0} o = \frac{0}{0}
+        expect(card.expressionLatex).toMatch(/=\s*\\frac\{[01]\}\{0\}/);
       });
     });
 

@@ -236,17 +236,17 @@ export function generateFullDeck(): Card[] {
       });
     }
 
-    // 3. Cartas de Bloqueo (2 por color): Indeterminación con denominador 0
+    // 3. Cartas de Bloqueo (2 por color): Igualdades que terminan en 1/0 o 0/0
     const skipExpressions = [
       {
-        latex: `\\frac{${v} + 3}{0}`,
-        corner: `\\frac{${v}+3}{0}`,
-        explanation: `\\frac{${v}+3}{0} \\implies \\text{Indeterminación (Salta el turno)}`,
+        latex: `\\frac{${v} + 3}{0} = \\frac{1}{0}`,
+        corner: `\\frac{${v}+3}{0} = \\frac{1}{0}`,
+        explanation: `\\frac{${v}+3}{0} = \\frac{1}{0} \\implies \\text{División entre cero / Indeterminación (Salta el turno)}`,
       },
       {
-        latex: color === 'green' ? `\\frac{0}{0}` : `\\frac{5${v}}{0}`,
-        corner: color === 'green' ? `\\frac{0}{0}` : `\\frac{5${v}}{0}`,
-        explanation: `\\text{División entre cero} \\implies \\text{Indeterminación (Salta turno)}`,
+        latex: color === 'green' ? `\\frac{0}{0} = \\frac{0}{0}` : `\\frac{${v} - ${v}}{0} = \\frac{0}{0}`,
+        corner: color === 'green' ? `\\frac{0}{0} = \\frac{0}{0}` : `\\frac{${v}-${v}}{0} = \\frac{0}{0}`,
+        explanation: `\\text{Indeterminación } \\frac{0}{0} \\implies \\text{Salta turno}`,
       },
     ];
 
@@ -269,13 +269,13 @@ export function generateFullDeck(): Card[] {
     const reverseExpressions = [
       {
         latex: `(${v} - 1 > 2) \\cdot (-1) \\implies -${v} + 1 < -2`,
-        corner: `\\gtrless`,
+        corner: `(${v} - 1 > 2) \\cdot (-1) \\implies -${v} + 1 < -2`,
         explanation: `\\text{Al multiplicar por } (-1) \\text{ la desigualdad invierte su sentido } ( > \\to < )`,
         invertedFrom: `(${v} - 1 > 2) \\cdot (-1)`,
       },
       {
         latex: `(2${v} \\le 6) \\cdot (-1) \\implies -2${v} \\ge -6`,
-        corner: `\\lessgtr`,
+        corner: `(2${v} \\le 6) \\cdot (-1) \\implies -2${v} \\ge -6`,
         explanation: `\\text{Al multiplicar por } (-1) \\text{ la desigualdad invierte su sentido } ( \\le \\to \\ge )`,
         invertedFrom: `(2${v} \\le 6) \\cdot (-1)`,
       },
@@ -296,17 +296,17 @@ export function generateFullDeck(): Card[] {
       });
     });
 
-    // 5. Cartas +2 (2 por color): Expresión espejo que simplifica a 2
+    // 5. Cartas +2 (2 por color): Expresión espejo que simplifica a 2 (sin "= 2")
     const draw2Expressions = [
       {
-        latex: `(${v} + 3) + (${v} - 1) - 2${v} = 2`,
-        corner: `+2`,
+        latex: `(${v} + 3) + (${v} - 1) - 2${v}`,
+        corner: `(${v} + 3) + (${v} - 1) - 2${v}`,
         explanation: `2${v} - 2${v} + (3 - 1) = 2 \\quad \\forall ${v}`,
         evalFn: (val: number) => (val + 3) + (val - 1) - 2 * val,
       },
       {
-        latex: `(2${v} + 5) - (2${v} + 3) = 2`,
-        corner: `+2`,
+        latex: `(2${v} + 5) - (2${v} + 3)`,
+        corner: `(2${v} + 5) - (2${v} + 3)`,
         explanation: `(2${v} - 2${v}) + (5 - 3) = 2 \\quad \\forall ${v}`,
         evalFn: (val: number) => (2 * val + 5) - (2 * val + 3),
       },
@@ -328,29 +328,29 @@ export function generateFullDeck(): Card[] {
     });
   });
 
-  // 6. Comodines +4 (4 cartas): Expresión espejo en variable x que simplifica a 4
+  // 6. Comodines +4 (4 cartas): Expresión espejo en variable x que simplifica a 4 (sin "= 4")
   const wild4Expressions = [
     {
-      latex: `(x + 5) + (x - 1) - 2x = 4`,
-      corner: `(x + 5) + (x - 1) - 2x = 4`,
+      latex: `(x + 5) + (x - 1) - 2x`,
+      corner: `(x + 5) + (x - 1) - 2x`,
       explanation: `2x - 2x + (5 - 1) = 4 \\quad \\forall x`,
       evalFn: (x: number) => (x + 5) + (x - 1) - 2 * x,
     },
     {
-      latex: `(2x + 7) - (2x + 3) = 4`,
-      corner: `(2x + 7) - (2x + 3) = 4`,
+      latex: `(2x + 7) - (2x + 3)`,
+      corner: `(2x + 7) - (2x + 3)`,
       explanation: `(2x - 2x) + (7 - 3) = 4 \\quad \\forall x`,
       evalFn: (x: number) => (2 * x + 7) - (2 * x + 3),
     },
     {
-      latex: `(3x + 6) + (x - 2) - 4x = 4`,
-      corner: `(3x + 6) + (x - 2) - 4x = 4`,
+      latex: `(3x + 6) + (x - 2) - 4x`,
+      corner: `(3x + 6) + (x - 2) - 4x`,
       explanation: `4x - 4x + (6 - 2) = 4 \\quad \\forall x`,
       evalFn: (x: number) => (3 * x + 6) + (x - 2) - 4 * x,
     },
     {
-      latex: `(x + 9) - (x + 5) = 4`,
-      corner: `(x + 9) - (x + 5) = 4`,
+      latex: `(x + 9) - (x + 5)`,
+      corner: `(x + 9) - (x + 5)`,
       explanation: `(x - x) + (9 - 5) = 4 \\quad \\forall x`,
       evalFn: (x: number) => (x + 9) - (x + 5),
     },
