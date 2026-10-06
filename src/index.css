@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom Uno Card and Board Styles */
+.uno-gradient-bg {
+  background: radial-gradient(circle at center, #ea580c 0%, #dc2626 50%, #7f1d1d 100%);
+}
+
+.uno-card-shadow {
+  box-shadow: -2px 4px 14px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.uno-card-shadow-active {
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.8), -3px 6px 20px rgba(0, 0, 0, 0.6);
+}
+
+/* KaTeX custom sizing inside cards */
+.katex-card-corner {
+  font-size: 0.65rem !important;
+  line-height: 1 !important;
+}
+
+.katex-card-corner .katex {
+  font-size: 0.65em !important;
+}
+
+.katex-card-large {
+  font-size: 1.1rem !important;
+}
