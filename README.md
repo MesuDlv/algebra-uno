@@ -18,11 +18,18 @@ Desarrollado con **React**, **Vite**, **TypeScript**, **Tailwind CSS**, **Framer
 
 ### Tipos de Cartas (Mazo de 108 cartas)
 1. **Numéricas (0 a 9)**: Ecuaciones algebraicas cuya solución única entera es el número de la carta (ej. $2 + Y = 4 \implies 2$, $4Z = 8 \implies 2$). Coinciden por **color** o por **solución matemática**.
-2. **Bloqueo**: Indeterminación con división por cero en la variable del color (ej. $\frac{Y+3}{0}$).
-3. **Cambio de Sentido**: Desigualdad multiplicada por $-1$ donde el signo se invierte (ej. $(Y - 1 > 2) \cdot (-1) \implies -Y + 1 < -2$). *(Con 2 jugadores funciona como bloqueo)*.
+2. **Bloqueo**: Indeterminación con división por cero en la variable del color (ej. $0Y = 1$ o $2 + 0N = 4 \implies \frac{\dots}{0}$).
+3. **Cambio de Sentido**: Desigualdad multiplicada por $-1$ donde el signo se invierte (ej. $(Y > 2) \cdot (-1) \implies -Y < -2$). *(Con 2 jugadores actúa como bloqueo)*.
 4. **+2 (Roba dos)**: Expresión espejo donde las variables se cancelan y simplifica exactamente a $2$ (ej. $(Z+3) + (Z-1) - 2Z = 2$).
-5. **+4 Comodín**: Expresión espejo en variable $x$ que simplifica a $4$. Permite elegir color y habilita la regla oficial de **Desafiar / Aceptar**.
+5. **+4 Comodín**: Expresión espejo en variable $x$ que simplifica a $4$ (ej. $(x+5) + (x-1) - 2x = 4$). Permite elegir color y acumular ataques.
 6. **Comodín de Color**: "Sea $x$ cualquier variable" $\{Y, Z, F, N\}$. Permite elegir color.
+
+### ⚔️ Reglas Especiales de la Partida
+- **Acumulación de Castigos (Stacking de $+2$ y $+4$)**: Cuando recibes un $+2$ o $+4$, puedes defenderte jugando otro $+2$ o $+4$ de tu mano. El pozo se acumula continuamente ($+2 \to +4 \to +8 \dots$) hasta que un jugador no pueda defenderse y deba robar todas las cartas acumuladas perdiendo su turno.
+- **Comer hasta poder lanzar**: En un turno normal, si no tienes ninguna carta válida para jugar y presionas el mazo de robo, robas automáticamente cartas sucesivas del mazo hasta encontrar una que puedas lanzar de inmediato.
+- **¡Cantar UNO!**: Si te queda una sola carta en mano, debes presionar el botón "¡UNO!" antes de que un rival te atrape con "¡Atrapar UNO!", o serás penalizado con 2 cartas.
+- **Efectos de Audio y Háptica**: Sonidos sintetizados en tiempo real mediante **Web Audio API** y vibración táctil en dispositivos móviles, con control de silencio.
+- **PWA Instalable**: Puedes instalar la aplicación como juego nativo en Android o iOS desde el navegador.
 
 ---
 
