@@ -349,47 +349,78 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
         };
       }
 
-      // Turno normal sin cartas acumuladas: roba 1 carta
-      const drawResult = drawCardsDeterministically(state, 1);
-      if (drawResult.drawn.length === 0) return state;
-
-      const drawnCard = drawResult.drawn[0];
+      // Turno normal sin cartas acumuladas: "Come hasta que pueda lanzar"
+      // Roba sucesivamente del mazo hasta obtener una carta que sea jugable
+      const drawnCards: Card[] = [];
+      let foundPlayableCard: Card | null = null;
+      let currentDeck = [...state.deck];
+      let currentDiscard = [...state.discardPile];
+      let currentReshuffleCount = state.reshuffleCount;
       const topCard = state.discardPile[state.discardPile.length - 1];
+
+      // Límite de seguridad de 108 iteraciones para evitar bucles si no hay coincidencia posible
+      const MAX_DRAW_ATTEMPTS = 108;
+      let attempts = 0;
+
+      while (!foundPlayableCard && attempts < MAX_DRAW_ATTEMPTS) {
+        attempts++;
+        const drawResult = drawCardsDeterministically(
+          { ...state, deck: currentDeck, discardPile: currentDiscard, reshuffleCount: currentReshuffleCount },
+          1
+        );
+        if (drawResult.drawn.length === 0) {
+          // No hay más cartas disponibles en el mazo ni en descarte
+          break;
+        }
+
+        const drawnCard = drawResult.drawn[0];
+        drawnCards.push(drawnCard);
+        currentDeck = drawResult.nextDeck;
+        currentDiscard = drawResult.nextDiscard;
+        currentReshuffleCount = drawResult.nextReshuffleCount;
+
+        if (isCardPlayable(drawnCard, topCard, state.activeColor, 0)) {
+          foundPlayableCard = drawnCard;
+          break;
+        }
+      }
+
+      if (drawnCards.length === 0) return state;
 
       const nextPlayers = state.players.map((p, idx) => {
         if (idx === playerIndex) {
-          return { ...p, hand: [...p.hand, drawnCard] };
+          return { ...p, hand: [...p.hand, ...drawnCards] };
         }
         return p;
       });
 
-      const isPlayable = isCardPlayable(drawnCard, topCard, state.activeColor, 0);
-
-      if (isPlayable) {
-        // Puede jugarla o pasar
+      if (foundPlayableCard) {
+        // Encontró carta jugable: el jugador sigue en turno y puede lanzarla
         return {
           ...state,
           players: nextPlayers,
-          deck: drawResult.nextDeck,
-          discardPile: drawResult.nextDiscard,
-          reshuffleCount: drawResult.nextReshuffleCount,
-          drawnCardThisTurn: drawnCard,
-          lastAction: `${player.name} robó una carta jugable`,
+          deck: currentDeck,
+          discardPile: currentDiscard,
+          reshuffleCount: currentReshuffleCount,
+          drawnCardThisTurn: foundPlayableCard,
+          lastAction:
+            drawnCards.length === 1
+              ? `${player.name} robó 1 carta jugable`
+              : `${player.name} comió ${drawnCards.length} cartas hasta que pudo lanzar`,
         };
       }
 
-      // Si no es jugable, pasa automáticamente el turno
+      // Si se agotó el mazo sin encontrar carta jugable (caso extremo de mazo vacío sin coincidencia)
       const nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, state.direction, 1);
-
       return {
         ...state,
         players: nextPlayers,
-        deck: drawResult.nextDeck,
-        discardPile: drawResult.nextDiscard,
-        reshuffleCount: drawResult.nextReshuffleCount,
+        deck: currentDeck,
+        discardPile: currentDiscard,
+        reshuffleCount: currentReshuffleCount,
         currentTurnIndex: nextTurnIndex,
         drawnCardThisTurn: null,
-        lastAction: `${player.name} robó carta y pasó turno`,
+        lastAction: `${player.name} comió ${drawnCards.length} cartas sin coincidencia y pasó turno`,
       };
     }
 

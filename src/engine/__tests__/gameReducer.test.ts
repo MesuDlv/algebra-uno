@@ -515,7 +515,101 @@ describe('Motor de Reglas Determinista de ALGEBRA UNO (gameReducer)', () => {
       expect(state.players[1].hand.length).toBe(handU2Before + 6);
       expect(state.accumulatedDrawCount).toBe(0);
       // El turno pasa al siguiente
+    });
+  });
+
+  describe('Regla de Robo Continuo ("Comer hasta poder lanzar")', () => {
+    it('si el jugador no tiene carta jugable, come sucesivamente del mazo hasta obtener una que pueda lanzar', () => {
+      let state = gameReducer(createInitialState(), {
+        seq: 1,
+        uid: 'u1',
+        type: 'start',
+        payload: { seed: 1234, players: players2 },
+      });
+
+      state.currentTurnIndex = 0;
+      state.direction = 1;
+      state.activeColor = 'green';
+      state.discardPile = [sampleGreenNumber]; // Verde, Y, valor 2
+
+      // u1 solo tiene una carta que NO puede jugar (Rojo, Z, valor 7)
+      const unplayableHandCard: Card = {
+        id: 'unplayable_hand',
+        color: 'red',
+        variable: 'Z',
+        type: 'number',
+        value: 7,
+        expressionLatex: '7',
+        displayCornerLatex: '7',
+        explanationLatex: '7',
+      };
+      state.players[0].hand = [unplayableHandCard];
+
+      // Preparamos el mazo para que las próximas 3 cartas a robar sean:
+      // (El mazo usa .pop(), por lo que la carta superior es el último elemento)
+      const cardPlayable: Card = {
+        id: 'c_playable_green',
+        color: 'green',
+        variable: 'Y',
+        type: 'number',
+        value: 5,
+        expressionLatex: '5',
+        displayCornerLatex: '5',
+        explanationLatex: '5',
+      };
+
+      const cardUnplayable2: Card = {
+        id: 'c_unplayable_blue',
+        color: 'blue',
+        variable: 'F',
+        type: 'number',
+        value: 8,
+        expressionLatex: '8',
+        displayCornerLatex: '8',
+        explanationLatex: '8',
+      };
+
+      const cardUnplayable1: Card = {
+        id: 'c_unplayable_yellow',
+        color: 'yellow',
+        variable: 'N',
+        type: 'number',
+        value: 9,
+        expressionLatex: '9',
+        displayCornerLatex: '9',
+        explanationLatex: '9',
+      };
+
+      // Al hacer pop(): primero saldrá cardUnplayable1, luego cardUnplayable2, luego cardPlayable
+      state.deck = [cardPlayable, cardUnplayable2, cardUnplayable1];
+
+      // u1 presiona Robar
+      state = gameReducer(state, {
+        seq: 2,
+        uid: 'u1',
+        type: 'draw',
+        payload: {},
+      });
+
+      // u1 debió comer exactamente las 3 cartas (1 que tenía + 3 robadas = 4 en mano)
+      expect(state.players[0].hand.length).toBe(4);
+      // La carta jugable encontrada queda lista para jugarse
+      expect(state.drawnCardThisTurn?.id).toBe('c_playable_green');
+      // u1 permanece en su turno para lanzarla
       expect(state.currentTurnIndex).toBe(0);
+
+      // Ahora u1 lanza la carta jugable que acaba de comer
+      state = gameReducer(state, {
+        seq: 3,
+        uid: 'u1',
+        type: 'play',
+        payload: { cardId: 'c_playable_green' },
+      });
+
+      // Su mano baja a 3 cartas y el turno pasa a u2
+      expect(state.players[0].hand.length).toBe(3);
+      expect(state.currentTurnIndex).toBe(1);
+      expect(state.drawnCardThisTurn).toBeNull();
     });
   });
 
