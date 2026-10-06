@@ -84,8 +84,8 @@ export async function ensureAnonymousAuth(): Promise<User | null> {
     const userCredential = await signInAnonymously(auth);
     return userCredential.user;
   } catch (error) {
-    console.error('Error al iniciar sesión anónima en Firebase:', error);
-    throw error;
+    console.warn('Aviso al iniciar sesión anónima en Firebase (se continuará en modo local o reintentando):', error);
+    return null;
   }
 }
 
