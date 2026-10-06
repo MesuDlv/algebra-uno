@@ -230,77 +230,18 @@ describe('Motor de Reglas Determinista de ALGEBRA UNO (gameReducer)', () => {
     expect(state.currentTurnIndex).toBe(2);
   });
 
-  it('aplica la carta +2 obligando al siguiente a robar 2 cartas y saltar su turno', () => {
-    let state = gameReducer(createInitialState(), {
-      seq: 1,
-      uid: 'u1',
-      type: 'start',
-      payload: { seed: 400, players: players3 },
-    });
-
-    state.currentTurnIndex = 0;
-    state.activeColor = 'green';
-    state.discardPile = [sampleGreenNumber];
-
-    const dummyCard: Card = {
-      id: 'dummy_card',
-      color: 'red',
-      variable: 'Z',
-      type: 'number',
-      value: 5,
-      expressionLatex: '5',
-      displayCornerLatex: '5',
-      explanationLatex: '5',
-    };
-
-    const draw2Card: Card = {
-      id: 'd2_test',
-      color: 'green',
-      variable: 'Y',
-      type: 'draw2',
-      expressionLatex: '(Y+3)+(Y-1)-2Y',
-      displayCornerLatex: '(Y+3)+(Y-1)-2Y',
-      explanationLatex: '=2',
-    };
-
-    state.players[0].hand = [draw2Card, dummyCard];
-    const initialHandU2 = state.players[1].hand.length;
-
-    state = gameReducer(state, {
-      seq: 2,
-      uid: 'u1',
-      type: 'play',
-      payload: { cardId: 'd2_test' },
-    });
-
-    // u2 debió robar 2 cartas (initialHandU2 + 2)
-    expect(state.players[1].hand.length).toBe(initialHandU2 + 2);
-    // El turno pasa a u3 (índice 2)
-    expect(state.currentTurnIndex).toBe(2);
-  });
-
-  describe('Mecánica de Comodín +4 con Desafío (Challenge)', () => {
-    it('al jugar +4 entra en estado pendingChallenge y el objetivo puede Aceptar (+4 y salta)', () => {
+  describe('Regla de Acumulación (Stacking) de +2 y +4', () => {
+    it('al jugar +2, se acumulan 2 cartas y el turno pasa al siguiente jugador para defenderse o robar', () => {
       let state = gameReducer(createInitialState(), {
         seq: 1,
         uid: 'u1',
         type: 'start',
-        payload: { seed: 500, players: players3 },
+        payload: { seed: 400, players: players3 },
       });
 
       state.currentTurnIndex = 0;
       state.activeColor = 'green';
       state.discardPile = [sampleGreenNumber];
-
-      const wild4Card: Card = {
-        id: 'w4_test',
-        color: 'wild',
-        variable: 'x',
-        type: 'wild4',
-        expressionLatex: '(x+5)+(x-1)-2x',
-        displayCornerLatex: '(x+5)+(x-1)-2x',
-        explanationLatex: '=4',
-      };
 
       const dummyCard: Card = {
         id: 'dummy_card',
@@ -313,94 +254,185 @@ describe('Motor de Reglas Determinista de ALGEBRA UNO (gameReducer)', () => {
         explanationLatex: '5',
       };
 
-      state.players[0].hand = [wild4Card, dummyCard];
+      const draw2Card: Card = {
+        id: 'd2_test',
+        color: 'green',
+        variable: 'Y',
+        type: 'draw2',
+        expressionLatex: '(Y+3)+(Y-1)-2Y',
+        displayCornerLatex: '(Y+3)+(Y-1)-2Y',
+        explanationLatex: '=2',
+      };
+
+      state.players[0].hand = [draw2Card, dummyCard];
 
       state = gameReducer(state, {
         seq: 2,
         uid: 'u1',
         type: 'play',
-        payload: { cardId: 'w4_test', chosenColor: 'blue' },
+        payload: { cardId: 'd2_test' },
       });
 
-      expect(state.status).toBe('pendingChallenge');
-      expect(state.pendingChallenge).not.toBeNull();
-      expect(state.pendingChallenge?.targetUid).toBe('u2');
-
-      const handU2Before = state.players[1].hand.length;
-
-      // u2 acepta el +4
-      state = gameReducer(state, {
-        seq: 3,
-        uid: 'u2',
-        type: 'accept+4',
-        payload: {},
-      });
-
-      expect(state.status).toBe('playing');
-      expect(state.players[1].hand.length).toBe(handU2Before + 4);
-      // Turno avanza saltando a u2 -> pasa a u3
-      expect(state.currentTurnIndex).toBe(2);
+      // Se acumularon 2 cartas
+      expect(state.accumulatedDrawCount).toBe(2);
+      // El turno pasa a u2 (índice 1) para responder
+      expect(state.currentTurnIndex).toBe(1);
     });
 
-    it('si el desafiado tenía cartas del color activo, el Desafío es Exitoso y el atacante roba 4', () => {
+    it('permite encadenar +2 sobre +2 acumulando 4 cartas, y +4 sobre +2 acumulando 8 cartas', () => {
       let state = gameReducer(createInitialState(), {
         seq: 1,
         uid: 'u1',
         type: 'start',
-        payload: { seed: 600, players: players2 },
+        payload: { seed: 500, players: players3 },
       });
 
       state.currentTurnIndex = 0;
       state.activeColor = 'green';
       state.discardPile = [sampleGreenNumber];
 
-      const wild4Card: Card = {
-        id: 'w4_illegal',
+      const dummy: Card = {
+        id: 'd_card',
+        color: 'yellow',
+        variable: 'N',
+        type: 'number',
+        value: 9,
+        expressionLatex: '9',
+        displayCornerLatex: '9',
+        explanationLatex: '9',
+      };
+
+      const d2Green: Card = {
+        id: 'd2_u1',
+        color: 'green',
+        variable: 'Y',
+        type: 'draw2',
+        expressionLatex: '2',
+        displayCornerLatex: '2',
+        explanationLatex: '2',
+      };
+
+      const d2Red: Card = {
+        id: 'd2_u2',
+        color: 'red',
+        variable: 'Z',
+        type: 'draw2',
+        expressionLatex: '2',
+        displayCornerLatex: '2',
+        explanationLatex: '2',
+      };
+
+      const wild4: Card = {
+        id: 'w4_u3',
         color: 'wild',
         variable: 'x',
         type: 'wild4',
-        expressionLatex: '(x+5)-2x',
-        displayCornerLatex: '(x+5)-2x',
-        explanationLatex: '=4',
+        expressionLatex: '4',
+        displayCornerLatex: '4',
+        explanationLatex: '4',
       };
 
-      // Le agregamos una carta del color activo (verde) para que su +4 sea ilegal
-      const matchingColorCard: Card = {
-        id: 'matching_color',
-        color: 'green',
-        variable: 'Y',
-        type: 'number',
-        value: 1,
-        expressionLatex: 'Y+1=2',
-        displayCornerLatex: 'Y+1=2',
-        explanationLatex: 'Y=1',
-      };
+      state.players[0].hand = [d2Green, dummy];
+      state.players[1].hand = [d2Red, dummy];
+      state.players[2].hand = [wild4, dummy];
 
-      state.players[0].hand = [wild4Card, matchingColorCard];
-      const handU1Before = state.players[0].hand.length;
-
+      // 1. u1 juega +2 verde -> acumulado = 2, turno pasa a u2
       state = gameReducer(state, {
         seq: 2,
         uid: 'u1',
         type: 'play',
-        payload: { cardId: 'w4_illegal' },
+        payload: { cardId: 'd2_u1' },
       });
+      expect(state.accumulatedDrawCount).toBe(2);
+      expect(state.currentTurnIndex).toBe(1);
 
-      // u2 desafía el +4
+      // 2. u2 se defiende jugando +2 rojo -> acumulado = 4, turno pasa a u3
       state = gameReducer(state, {
         seq: 3,
         uid: 'u2',
-        type: 'challenge+4',
+        type: 'play',
+        payload: { cardId: 'd2_u2' },
+      });
+      expect(state.accumulatedDrawCount).toBe(4);
+      expect(state.currentTurnIndex).toBe(2);
+      expect(state.activeColor).toBe('red');
+
+      // 3. u3 se defiende jugando +4 comodín (elige azul) -> acumulado = 8, turno vuelve a u1
+      state = gameReducer(state, {
+        seq: 4,
+        uid: 'u3',
+        type: 'play',
+        payload: { cardId: 'w4_u3', chosenColor: 'blue' },
+      });
+      expect(state.accumulatedDrawCount).toBe(8);
+      expect(state.currentTurnIndex).toBe(0);
+      expect(state.activeColor).toBe('blue');
+    });
+
+    it('si el jugador no puede defenderse y roba, absorbe TODO el acumulado y pierde el turno', () => {
+      let state = gameReducer(createInitialState(), {
+        seq: 1,
+        uid: 'u1',
+        type: 'start',
+        payload: { seed: 600, players: players3 },
+      });
+
+      state.currentTurnIndex = 0;
+      state.direction = 1;
+      state.activeColor = 'green';
+      state.discardPile = [sampleGreenNumber];
+
+      const dummy: Card = {
+        id: 'd_card2',
+        color: 'yellow',
+        variable: 'N',
+        type: 'number',
+        value: 9,
+        expressionLatex: '9',
+        displayCornerLatex: '9',
+        explanationLatex: '9',
+      };
+
+      const wild4: Card = {
+        id: 'w4_u1',
+        color: 'wild',
+        variable: 'x',
+        type: 'wild4',
+        expressionLatex: '4',
+        displayCornerLatex: '4',
+        explanationLatex: '4',
+      };
+
+      state.players[0].hand = [wild4, dummy];
+      const handU2Before = state.players[1].hand.length;
+
+      // u1 juega +4
+      state = gameReducer(state, {
+        seq: 2,
+        uid: 'u1',
+        type: 'play',
+        payload: { cardId: 'w4_u1', chosenColor: 'yellow' },
+      });
+      expect(state.accumulatedDrawCount).toBe(4);
+      expect(state.currentTurnIndex).toBe(1);
+
+      // u2 no tiene defensa y presiona Robar
+      state = gameReducer(state, {
+        seq: 3,
+        uid: 'u2',
+        type: 'draw',
         payload: {},
       });
 
-      // u1 cometió infracción -> u1 roba 4 cartas (handU1Before - 1 jugada + 4 robadas)
-      expect(state.players[0].hand.length).toBe(handU1Before - 1 + 4);
-      // u2 juega normalmente su turno
-      expect(state.currentTurnIndex).toBe(1);
+      // u2 roba 4 cartas
+      expect(state.players[1].hand.length).toBe(handU2Before + 4);
+      // El pozo acumulado se reinicia a 0
+      expect(state.accumulatedDrawCount).toBe(0);
+      // u2 pierde el turno: pasa a u3 (índice 2)
+      expect(state.currentTurnIndex).toBe(2);
     });
 
-    it('si el desafiado NO tenía cartas del color activo, el Desafío Falla y el retador roba 6', () => {
+    it('bloquea el juego de cartas normales (números, saltos, reversas) mientras haya penalización acumulada', () => {
       let state = gameReducer(createInitialState(), {
         seq: 1,
         uid: 'u1',
@@ -412,48 +444,78 @@ describe('Motor de Reglas Determinista de ALGEBRA UNO (gameReducer)', () => {
       state.activeColor = 'green';
       state.discardPile = [sampleGreenNumber];
 
-      // Aseguramos que u1 NO tenga cartas del color activo (solo tiene el +4)
-      const wild4Card: Card = {
-        id: 'w4_legal',
-        color: 'wild',
-        variable: 'x',
-        type: 'wild4',
-        expressionLatex: '(x+5)-2x',
-        displayCornerLatex: '(x+5)-2x',
-        explanationLatex: '=4',
+      const draw2: Card = {
+        id: 'd2_u1_block',
+        color: 'green',
+        variable: 'Y',
+        type: 'draw2',
+        expressionLatex: '2',
+        displayCornerLatex: '2',
+        explanationLatex: '2',
       };
 
-      const nonMatchingDummy: Card = {
-        id: 'dummy_non_matching',
-        color: 'red',
-        variable: 'Z',
+      const numberCard: Card = {
+        id: 'num_u2',
+        color: 'green',
+        variable: 'Y',
         type: 'number',
-        value: 5,
-        expressionLatex: '5',
-        displayCornerLatex: '5',
-        explanationLatex: '5',
+        value: 2,
+        expressionLatex: '2',
+        displayCornerLatex: '2',
+        explanationLatex: '2',
       };
 
-      state.players[0].hand = [wild4Card, nonMatchingDummy];
-      const handU2Before = state.players[1].hand.length;
+      state.players[0].hand = [draw2, sampleGreenNumber];
+      state.players[1].hand = [numberCard, sampleGreenNumber];
 
+      // u1 juega +2
       state = gameReducer(state, {
         seq: 2,
         uid: 'u1',
         type: 'play',
-        payload: { cardId: 'w4_legal' },
+        payload: { cardId: 'd2_u1_block' },
       });
+      expect(state.accumulatedDrawCount).toBe(2);
+      expect(state.currentTurnIndex).toBe(1);
 
-      // u2 desafía el +4
+      // u2 intenta jugar un número que coincide en color y valor: DEBE SER RECHAZADO
+      const stateBeforeIllegalPlay = JSON.stringify(state);
       state = gameReducer(state, {
         seq: 3,
         uid: 'u2',
-        type: 'challenge+4',
-        payload: {},
+        type: 'play',
+        payload: { cardId: 'num_u2' },
       });
 
-      // Desafío falló: u2 roba 6 cartas (4 + 2 penalización)
+      // El estado no cambia porque no es una defensa legal (+2 o +4)
+      expect(JSON.stringify(state)).toBe(stateBeforeIllegalPlay);
+    });
+
+    it('si se agota el tiempo (skipTimeout) con penalización acumulada, el jugador roba el total acumulado', () => {
+      let state = gameReducer(createInitialState(), {
+        seq: 1,
+        uid: 'u1',
+        type: 'start',
+        payload: { seed: 750, players: players2 },
+      });
+
+      state.currentTurnIndex = 1;
+      state.accumulatedDrawCount = 6;
+      const handU2Before = state.players[1].hand.length;
+
+      // Tiempo agotado para u2
+      state = gameReducer(state, {
+        seq: 2,
+        uid: 'u2',
+        type: 'skipTimeout',
+        payload: { targetUid: 'u2' },
+      });
+
+      // u2 roba las 6 cartas
       expect(state.players[1].hand.length).toBe(handU2Before + 6);
+      expect(state.accumulatedDrawCount).toBe(0);
+      // El turno pasa al siguiente
+      expect(state.currentTurnIndex).toBe(0);
     });
   });
 
@@ -705,17 +767,6 @@ describe('Motor de Reglas Determinista de ALGEBRA UNO (gameReducer)', () => {
           continue;
         }
 
-        // Si está pendiente de desafío
-        if (state.status === 'pendingChallenge' && state.pendingChallenge) {
-          state = gameReducer(state, {
-            seq: seq++,
-            uid: state.pendingChallenge.targetUid,
-            type: 'accept+4',
-            payload: {},
-          });
-          continue;
-        }
-
         const currentPlayer = state.players[state.currentTurnIndex];
         const topCard = state.discardPile[state.discardPile.length - 1];
 
@@ -729,8 +780,10 @@ describe('Motor de Reglas Determinista de ALGEBRA UNO (gameReducer)', () => {
           });
         }
 
-        // Buscar cartas jugables
-        const playableCard = currentPlayer.hand.find((c) => isCardPlayable(c, topCard, state.activeColor));
+        // Buscar cartas jugables (considerando si hay penalización acumulada pendiente de +2 o +4)
+        const playableCard = currentPlayer.hand.find((c) =>
+          isCardPlayable(c, topCard, state.activeColor, state.accumulatedDrawCount)
+        );
 
         if (playableCard) {
           state = gameReducer(state, {
@@ -739,11 +792,14 @@ describe('Motor de Reglas Determinista de ALGEBRA UNO (gameReducer)', () => {
             type: 'play',
             payload: {
               cardId: playableCard.id,
-              chosenColor: playableCard.color === 'wild' ? 'red' : undefined,
+              chosenColor:
+                playableCard.color === 'wild' || playableCard.type === 'wild' || playableCard.type === 'wild4'
+                  ? 'red'
+                  : undefined,
             },
           });
         } else {
-          // Robar
+          // Robar (si había acumulación de +2 o +4, roba todas las acumuladas y pierde turno)
           state = gameReducer(state, {
             seq: seq++,
             uid: currentPlayer.uid,
@@ -751,7 +807,7 @@ describe('Motor de Reglas Determinista de ALGEBRA UNO (gameReducer)', () => {
             payload: {},
           });
 
-          // Si robó una carta jugable, la juega
+          // Si robó en turno normal una carta jugable, la juega
           if (state.drawnCardThisTurn) {
             state = gameReducer(state, {
               seq: seq++,
@@ -759,7 +815,12 @@ describe('Motor de Reglas Determinista de ALGEBRA UNO (gameReducer)', () => {
               type: 'play',
               payload: {
                 cardId: state.drawnCardThisTurn.id,
-                chosenColor: state.drawnCardThisTurn.color === 'wild' ? 'blue' : undefined,
+                chosenColor:
+                  state.drawnCardThisTurn.color === 'wild' ||
+                  state.drawnCardThisTurn.type === 'wild' ||
+                  state.drawnCardThisTurn.type === 'wild4'
+                    ? 'blue'
+                    : undefined,
               },
             });
           }

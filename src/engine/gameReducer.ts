@@ -1,9 +1,9 @@
 import { Card, CardColor } from '../types/card';
-import { GameState, PlayerState, PendingChallenge } from '../types/game';
+import { GameState, PlayerState } from '../types/game';
 import { GameEvent, StartEventPayload, PlayEventPayload, ChooseColorEventPayload, CatchUnoEventPayload, RematchEventPayload } from '../types/event';
 import { generateFullDeck } from './deckGenerator';
 import { createPRNG, shuffleArray } from './prng';
-import { isCardPlayable, getNextPlayerIndex, isWild4ChallengeSuccessful } from './rules';
+import { isCardPlayable, getNextPlayerIndex } from './rules';
 
 export function createInitialState(): GameState {
   return {
@@ -16,7 +16,7 @@ export function createInitialState(): GameState {
     discardPile: [],
     activeColor: 'green',
     pendingColorPlayerId: null,
-    pendingChallenge: null,
+    accumulatedDrawCount: 0,
     drawnCardThisTurn: null,
     reshuffleCount: 0,
     winnerUid: null,
@@ -104,7 +104,6 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
       // Si la carta es Wild4, se regresa al mazo hasta voltear una que no sea Wild4
       let topCardIndex = fullDeck.length - 1;
       while (topCardIndex >= 0 && fullDeck[topCardIndex].type === 'wild4') {
-        // Mover al fondo y probar la siguiente
         const wild4 = fullDeck.pop()!;
         fullDeck.unshift(wild4);
         topCardIndex = fullDeck.length - 1;
@@ -132,7 +131,7 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
           currentTurnIndex = players.length - 1; // Juega el de la derecha
         }
       } else if (openingCard.type === 'draw2') {
-        // El primer jugador roba 2 cartas y es saltado
+        // En carta inicial, el primer jugador roba 2 cartas y es saltado
         const drawResult = drawCardsDeterministically(
           { ...createInitialState(), deck: fullDeck, discardPile, seed },
           2
@@ -157,7 +156,7 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
         discardPile,
         activeColor,
         pendingColorPlayerId,
-        pendingChallenge: null,
+        accumulatedDrawCount: 0,
         drawnCardThisTurn: null,
         reshuffleCount: 0,
         winnerUid: null,
@@ -186,8 +185,8 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
       }
 
       const topCard = state.discardPile[state.discardPile.length - 1];
-      if (!isCardPlayable(cardToPlay, topCard, state.activeColor)) {
-        return state; // Jugada ilegal
+      if (!isCardPlayable(cardToPlay, topCard, state.activeColor, state.accumulatedDrawCount)) {
+        return state; // Jugada ilegal (ej. tirar número o bloqueo cuando hay penalización acumulada)
       }
 
       // Remover la carta de la mano del jugador
@@ -217,7 +216,7 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
       // Poner la carta en la pila de descarte
       const nextDiscardPile = [...state.discardPile, cardToPlay];
 
-      // Verificar si ganó la partida
+      // Verificar si ganó la partida (mano vacía)
       if (nextHand.length === 0) {
         return {
           ...state,
@@ -225,6 +224,7 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
           players: nextPlayers,
           discardPile: nextDiscardPile,
           winnerUid: player.uid,
+          accumulatedDrawCount: 0,
           drawnCardThisTurn: null,
           lastAction: `¡${player.name} se quedó sin cartas y ha ganado la partida!`,
         };
@@ -236,9 +236,9 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
       let nextDirection = state.direction;
       let nextStatus: GameState['status'] = 'playing';
       let pendingColorPlayerId: string | null = null;
-      let pendingChallenge: PendingChallenge | null = null;
-      let nextDeck = [...state.deck];
-      let nextReshuffleCount = state.reshuffleCount;
+      let nextAccumulatedDrawCount = state.accumulatedDrawCount;
+      const nextDeck = [...state.deck];
+      const nextReshuffleCount = state.reshuffleCount;
 
       if (cardToPlay.type === 'number') {
         nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1);
@@ -254,18 +254,9 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
           nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1);
         }
       } else if (cardToPlay.type === 'draw2') {
-        // Siguiente jugador roba 2 cartas y es saltado
-        const targetPlayerIndex = getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1);
-        const drawResult = drawCardsDeterministically(
-          { ...state, deck: nextDeck, discardPile: nextDiscardPile, reshuffleCount: nextReshuffleCount },
-          2
-        );
-        nextDeck = drawResult.nextDeck;
-        nextReshuffleCount = drawResult.nextReshuffleCount;
-        nextPlayers[targetPlayerIndex].hand.push(...drawResult.drawn);
-
-        // Turno pasa después del jugador saltado
-        nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 2);
+        // REGLA DE ACUMULACIÓN: Suma 2 cartas al castigo acumulado y pasa el turno al siguiente para defenderse o robar
+        nextAccumulatedDrawCount += 2;
+        nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1);
       } else if (cardToPlay.type === 'wild') {
         if (payload.chosenColor && payload.chosenColor !== 'wild') {
           nextActiveColor = payload.chosenColor;
@@ -275,21 +266,14 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
           pendingColorPlayerId = player.uid;
         }
       } else if (cardToPlay.type === 'wild4') {
-        // Entra en estado de Desafío para el siguiente jugador
-        const targetPlayerIndex = getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1);
-        const targetPlayer = state.players[targetPlayerIndex];
-
-        nextStatus = 'pendingChallenge';
-        pendingChallenge = {
-          wild4Card: cardToPlay,
-          playedByUid: player.uid,
-          targetUid: targetPlayer.uid,
-          activeColorBeforeWild4: state.activeColor,
-          handBeforePlay: player.hand,
-        };
-
+        // REGLA DE ACUMULACIÓN: Suma 4 cartas al castigo acumulado.
+        nextAccumulatedDrawCount += 4;
         if (payload.chosenColor && payload.chosenColor !== 'wild') {
           nextActiveColor = payload.chosenColor;
+          nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1);
+        } else {
+          nextStatus = 'pendingColor';
+          pendingColorPlayerId = player.uid;
         }
       }
 
@@ -303,11 +287,11 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
         direction: nextDirection,
         activeColor: nextActiveColor,
         pendingColorPlayerId,
-        pendingChallenge,
+        accumulatedDrawCount: nextAccumulatedDrawCount,
         drawnCardThisTurn: null,
         reshuffleCount: nextReshuffleCount,
         unoVulnerableUids,
-        lastAction: `${player.name} jugó ${cardToPlay.variable}`,
+        lastAction: `${player.name} jugó ${cardToPlay.variable}${nextAccumulatedDrawCount > 0 ? ` (Acumulado: +${nextAccumulatedDrawCount})` : ''}`,
       };
     }
 
@@ -330,111 +314,46 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
       };
     }
 
-    case 'accept+4': {
-      if (state.status !== 'pendingChallenge' || !state.pendingChallenge) return state;
-      if (state.pendingChallenge.targetUid !== event.uid) return state;
-
-      const targetPlayerIndex = state.players.findIndex((p) => p.uid === event.uid);
-      const drawResult = drawCardsDeterministically(state, 4);
-
-      const nextPlayers = state.players.map((p, idx) => {
-        if (idx === targetPlayerIndex) {
-          return { ...p, hand: [...p.hand, ...drawResult.drawn] };
-        }
-        return p;
-      });
-
-      // El turno avanza saltando al jugador que robó
-      const nextTurnIndex = getNextPlayerIndex(targetPlayerIndex, state.players.length, state.direction, 1);
-
-      return {
-        ...state,
-        status: 'playing',
-        players: nextPlayers,
-        deck: drawResult.nextDeck,
-        discardPile: drawResult.nextDiscard,
-        reshuffleCount: drawResult.nextReshuffleCount,
-        pendingChallenge: null,
-        currentTurnIndex: nextTurnIndex,
-        lastAction: `${state.players[targetPlayerIndex].name} aceptó el +4 y roba 4 cartas`,
-      };
-    }
-
-    case 'challenge+4': {
-      if (state.status !== 'pendingChallenge' || !state.pendingChallenge) return state;
-      if (state.pendingChallenge.targetUid !== event.uid) return state;
-
-      const { playedByUid, targetUid, handBeforePlay, activeColorBeforeWild4 } = state.pendingChallenge;
-      const isIllegal = isWild4ChallengeSuccessful(handBeforePlay, activeColorBeforeWild4);
-
-      const challengerIndex = state.players.findIndex((p) => p.uid === targetUid);
-      const playedByIndex = state.players.findIndex((p) => p.uid === playedByUid);
-
-      let nextPlayers = [...state.players];
-      let nextDeck = state.deck;
-      let nextDiscard = state.discardPile;
-      let nextReshuffleCount = state.reshuffleCount;
-      let nextTurnIndex = challengerIndex;
-
-      if (isIllegal) {
-        // Desafío Exitoso: El desafiado jugó el +4 teniendo el color activo. Roba 4 cartas él.
-        const drawResult = drawCardsDeterministically(state, 4);
-        nextDeck = drawResult.nextDeck;
-        nextDiscard = drawResult.nextDiscard;
-        nextReshuffleCount = drawResult.nextReshuffleCount;
-
-        nextPlayers = nextPlayers.map((p, idx) => {
-          if (idx === playedByIndex) {
-            return { ...p, hand: [...p.hand, ...drawResult.drawn] };
-          }
-          return p;
-        });
-
-        // El retador juega su turno normal
-        nextTurnIndex = challengerIndex;
-      } else {
-        // Desafío Fallido: El desafiado no tenía el color activo. El retador roba 6 (4 + 2 penalización) y es saltado.
-        const drawResult = drawCardsDeterministically(state, 6);
-        nextDeck = drawResult.nextDeck;
-        nextDiscard = drawResult.nextDiscard;
-        nextReshuffleCount = drawResult.nextReshuffleCount;
-
-        nextPlayers = nextPlayers.map((p, idx) => {
-          if (idx === challengerIndex) {
-            return { ...p, hand: [...p.hand, ...drawResult.drawn] };
-          }
-          return p;
-        });
-
-        // Retador pierde su turno
-        nextTurnIndex = getNextPlayerIndex(challengerIndex, state.players.length, state.direction, 1);
-      }
-
-      return {
-        ...state,
-        status: 'playing',
-        players: nextPlayers,
-        deck: nextDeck,
-        discardPile: nextDiscard,
-        reshuffleCount: nextReshuffleCount,
-        pendingChallenge: null,
-        currentTurnIndex: nextTurnIndex,
-        lastAction: isIllegal
-          ? `¡Desafío exitoso! ${state.players[playedByIndex].name} cometió infracción y roba 4 cartas.`
-          : `Desafío fallido. ${state.players[challengerIndex].name} roba 6 cartas y pierde el turno.`,
-      };
-    }
-
     case 'draw': {
       if (state.status !== 'playing') return state;
-      if (state.players[state.currentTurnIndex]?.uid !== event.uid) return state;
+      const playerIndex = state.currentTurnIndex;
+      const player = state.players[playerIndex];
+      if (!player || player.uid !== event.uid) return state;
       if (state.drawnCardThisTurn) return state; // Ya robó este turno
 
+      // Si hay cartas acumuladas pendientes (+2 o +4) y el jugador roba (no se defiende con otro +2 o +4):
+      if (state.accumulatedDrawCount > 0) {
+        const countToDraw = state.accumulatedDrawCount;
+        const drawResult = drawCardsDeterministically(state, countToDraw);
+
+        const nextPlayers = state.players.map((p, idx) => {
+          if (idx === playerIndex) {
+            return { ...p, hand: [...p.hand, ...drawResult.drawn] };
+          }
+          return p;
+        });
+
+        // Al comerse la penalización acumulada, el jugador es saltado y pierde el turno
+        const nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, state.direction, 1);
+
+        return {
+          ...state,
+          players: nextPlayers,
+          deck: drawResult.nextDeck,
+          discardPile: drawResult.nextDiscard,
+          reshuffleCount: drawResult.nextReshuffleCount,
+          accumulatedDrawCount: 0,
+          currentTurnIndex: nextTurnIndex,
+          drawnCardThisTurn: null,
+          lastAction: `${player.name} no se defendió y robó ${countToDraw} cartas acumuladas`,
+        };
+      }
+
+      // Turno normal sin cartas acumuladas: roba 1 carta
       const drawResult = drawCardsDeterministically(state, 1);
-      if (drawResult.drawn.length === 0) return state; // No hay cartas
+      if (drawResult.drawn.length === 0) return state;
 
       const drawnCard = drawResult.drawn[0];
-      const playerIndex = state.currentTurnIndex;
       const topCard = state.discardPile[state.discardPile.length - 1];
 
       const nextPlayers = state.players.map((p, idx) => {
@@ -444,7 +363,7 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
         return p;
       });
 
-      const isPlayable = isCardPlayable(drawnCard, topCard, state.activeColor);
+      const isPlayable = isCardPlayable(drawnCard, topCard, state.activeColor, 0);
 
       if (isPlayable) {
         // Puede jugarla o pasar
@@ -455,7 +374,7 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
           discardPile: drawResult.nextDiscard,
           reshuffleCount: drawResult.nextReshuffleCount,
           drawnCardThisTurn: drawnCard,
-          lastAction: `${state.players[playerIndex].name} robó una carta jugable`,
+          lastAction: `${player.name} robó una carta jugable`,
         };
       }
 
@@ -470,14 +389,14 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
         reshuffleCount: drawResult.nextReshuffleCount,
         currentTurnIndex: nextTurnIndex,
         drawnCardThisTurn: null,
-        lastAction: `${state.players[playerIndex].name} robó carta y pasó turno`,
+        lastAction: `${player.name} robó carta y pasó turno`,
       };
     }
 
     case 'pass': {
       if (state.status !== 'playing') return state;
       if (state.players[state.currentTurnIndex]?.uid !== event.uid) return state;
-      if (!state.drawnCardThisTurn) return state; // Solo puede pasar si ya robó
+      if (!state.drawnCardThisTurn || state.accumulatedDrawCount > 0) return state; // Solo puede pasar si robó en turno normal
 
       const nextTurnIndex = getNextPlayerIndex(state.currentTurnIndex, state.players.length, state.direction, 1);
 
@@ -490,12 +409,11 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
     }
 
     case 'uno': {
-      // Un jugador canta UNO
       const playerIndex = state.players.findIndex((p) => p.uid === event.uid);
       if (playerIndex === -1) return state;
 
       const player = state.players[playerIndex];
-      // Si tiene 1 carta o 2 cartas (para pre-cantar), se protege
+      // Si tiene 1 o 2 cartas, puede cantar UNO
       if (player.hand.length > 2) return state;
 
       const nextPlayers = state.players.map((p, idx) => {
@@ -518,7 +436,7 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
     case 'catchUno': {
       const payload = event.payload as CatchUnoEventPayload;
       if (!payload || !payload.targetUid) return state;
-      if (payload.targetUid === event.uid) return state; // No te puedes atrapar a ti mismo
+      if (payload.targetUid === event.uid) return state;
 
       if (!state.unoVulnerableUids.includes(payload.targetUid)) return state;
 
@@ -553,13 +471,39 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
     case 'skipTimeout': {
       if (state.status !== 'playing') return state;
       const playerIndex = state.currentTurnIndex;
-      const nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, state.direction, 1);
+      const player = state.players[playerIndex];
+      if (!player) return state;
 
+      // Si había penalización acumulada activa, el jugador inactivo roba la penalización completa
+      if (state.accumulatedDrawCount > 0) {
+        const countToDraw = state.accumulatedDrawCount;
+        const drawResult = drawCardsDeterministically(state, countToDraw);
+        const nextPlayers = state.players.map((p, idx) => {
+          if (idx === playerIndex) {
+            return { ...p, hand: [...p.hand, ...drawResult.drawn] };
+          }
+          return p;
+        });
+        const nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, state.direction, 1);
+        return {
+          ...state,
+          players: nextPlayers,
+          deck: drawResult.nextDeck,
+          discardPile: drawResult.nextDiscard,
+          reshuffleCount: drawResult.nextReshuffleCount,
+          accumulatedDrawCount: 0,
+          currentTurnIndex: nextTurnIndex,
+          drawnCardThisTurn: null,
+          lastAction: `${player.name} tardó demasiado y robó ${countToDraw} cartas acumuladas`,
+        };
+      }
+
+      const nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, state.direction, 1);
       return {
         ...state,
         currentTurnIndex: nextTurnIndex,
         drawnCardThisTurn: null,
-        lastAction: `Turno de ${state.players[playerIndex].name} saltado por inactividad`,
+        lastAction: `Turno de ${player.name} saltado por inactividad`,
       };
     }
 

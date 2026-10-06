@@ -6,8 +6,6 @@ export type EventType =
   | 'draw'
   | 'pass'
   | 'chooseColor'
-  | 'challenge+4'
-  | 'accept+4'
   | 'uno'
   | 'catchUno'
   | 'skipTimeout'

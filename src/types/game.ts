@@ -12,29 +12,19 @@ export type GameStatus =
   | 'waiting'           // Esperando a que el creador inicie la partida
   | 'playing'           // En curso, turno de algún jugador
   | 'pendingColor'      // Esperando a que quien jugó un comodín elija color
-  | 'pendingChallenge'  // Esperando a que el siguiente jugador Acepte o Desafíe el +4
   | 'finished';         // Partida terminada con un ganador
-
-export interface PendingChallenge {
-  wild4Card: Card;
-  playedByUid: string;
-  targetUid: string;
-  activeColorBeforeWild4: CardColor;
-  // Registro de la mano previa del desafiado para validar legalidad
-  handBeforePlay: Card[];
-}
 
 export interface GameState {
   status: GameStatus;
   seed: number;
   players: PlayerState[];
   currentTurnIndex: number;
-  direction: 1 | -1;          // 1: Horario, -1: Antihorario
+  direction: 1 | -1;            // 1: Horario, -1: Antihorario
   deck: Card[];
   discardPile: Card[];
   activeColor: CardColor;
   pendingColorPlayerId: string | null;
-  pendingChallenge: PendingChallenge | null;
+  accumulatedDrawCount: number; // Cartas acumuladas por +2 o +4 (Regla de acumulación)
   drawnCardThisTurn: Card | null;  // Si robó carta este turno y puede jugarla
   reshuffleCount: number;
   winnerUid: string | null;
