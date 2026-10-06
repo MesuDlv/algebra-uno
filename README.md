@@ -1,5 +1,8 @@
 # ALGEBRA UNO 🎴📐
 
+[![Deploy to GitHub Pages](https://github.com/MesuDlv/algebra-uno/actions/workflows/deploy.yml/badge.svg)](https://github.com/MesuDlv/algebra-uno/actions/workflows/deploy.yml)
+[![Jugar Online](https://img.shields.io/badge/Jugar%20Online-GitHub%20Pages-22c55e?style=flat&logo=github)](https://mesudlv.github.io/algebra-uno/)
+
 Juego de cartas multijugador online, mobile-first, inspirado en el clásico UNO, donde las cartas son expresiones algebraicas en lugar de números.
 
 Desarrollado con **React**, **Vite**, **TypeScript**, **Tailwind CSS**, **Framer Motion**, **KaTeX** y **Firebase** (plan Spark gratuito).
