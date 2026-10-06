@@ -121,14 +121,17 @@ describe('Generador del Mazo ALGEBRA UNO (deckGenerator)', () => {
       });
     });
 
-    it('todas las cartas de bloqueo son igualdades que terminan en 1/0 o 4/0 (sin 0/0)', () => {
+    it('todas las cartas de bloqueo son ecuaciones con 0·V = k que implican división entre cero (sin ceros a la izquierda)', () => {
       const skipCards = deck.filter((c) => c.type === 'skip');
 
       skipCards.forEach((card) => {
         expect(card.metadata?.denominator).toBe(0);
-        // Debe ser una igualdad que termina en = \frac{1}{0} o = \frac{4}{0}
-        expect(card.expressionLatex).toMatch(/=\s*\\frac\{[14]\}\{0\}/);
-        expect(card.expressionLatex).not.toContain('\\frac{0}{0}');
+        // Debe contener 0 seguido de la variable (0Y, 0Z, 0F, 0N)
+        expect(card.expressionLatex).toContain(`0${card.variable}`);
+        // Debe ser una igualdad
+        expect(card.expressionLatex).toContain('=');
+        // No debe tener números como '04' con cero a la izquierda
+        expect(card.expressionLatex).not.toMatch(/\b0[1-9]\b/);
       });
     });
 

@@ -236,17 +236,19 @@ export function generateFullDeck(): Card[] {
       });
     }
 
-    // 3. Cartas de Bloqueo (2 por color): Igualdades que terminan en 1/0 o 4/0
+    // 3. Cartas de Bloqueo (2 por color): Ecuaciones con 0·V = k (k ≠ 0) que implican división entre cero
     const skipExpressions = [
       {
-        latex: `\\frac{${v}}{0} = \\frac{1}{0}`,
-        corner: `\\frac{${v}}{0} = \\frac{1}{0}`,
-        explanation: `\\frac{${v}}{0} = \\frac{1}{0} \\implies \\text{División entre cero / Indeterminación (Salta turno)}`,
+        latex: `0${v} = 1`,
+        corner: `0${v} = 1`,
+        explanation: `0${v} = 1 \\implies ${v} = \\frac{1}{0} \\implies \\text{División entre cero / Sin solución (Salta turno)}`,
       },
       {
-        latex: `\\frac{4${v}}{0} = \\frac{4}{0}`,
-        corner: `\\frac{4${v}}{0} = \\frac{4}{0}`,
-        explanation: `\\frac{4${v}}{0} = \\frac{4}{0} \\implies \\text{División entre cero / Indeterminación (Salta turno)}`,
+        latex: color === 'yellow' ? `2 + 0${v} = 4` : `0${v} = 4`,
+        corner: color === 'yellow' ? `2 + 0${v} = 4` : `0${v} = 4`,
+        explanation: color === 'yellow'
+          ? `2 + 0${v} = 4 \\implies 0${v} = 2 \\implies ${v} = \\frac{2}{0} \\implies \\text{División entre cero (Salta turno)}`
+          : `0${v} = 4 \\implies ${v} = \\frac{4}{0} \\implies \\text{División entre cero / Sin solución (Salta turno)}`,
       },
     ];
 
