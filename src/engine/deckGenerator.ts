@@ -236,17 +236,17 @@ export function generateFullDeck(): Card[] {
       });
     }
 
-    // 3. Cartas de Bloqueo (2 por color): Igualdades que terminan en 1/0 o 0/0
+    // 3. Cartas de Bloqueo (2 por color): Igualdades que terminan en 1/0 o 4/0
     const skipExpressions = [
       {
-        latex: `\\frac{${v} + 3}{0} = \\frac{1}{0}`,
-        corner: `\\frac{${v}+3}{0} = \\frac{1}{0}`,
-        explanation: `\\frac{${v}+3}{0} = \\frac{1}{0} \\implies \\text{División entre cero / Indeterminación (Salta el turno)}`,
+        latex: `\\frac{${v}}{0} = \\frac{1}{0}`,
+        corner: `\\frac{${v}}{0} = \\frac{1}{0}`,
+        explanation: `\\frac{${v}}{0} = \\frac{1}{0} \\implies \\text{División entre cero / Indeterminación (Salta turno)}`,
       },
       {
-        latex: color === 'green' ? `\\frac{0}{0} = \\frac{0}{0}` : `\\frac{${v} - ${v}}{0} = \\frac{0}{0}`,
-        corner: color === 'green' ? `\\frac{0}{0} = \\frac{0}{0}` : `\\frac{${v}-${v}}{0} = \\frac{0}{0}`,
-        explanation: `\\text{Indeterminación } \\frac{0}{0} \\implies \\text{Salta turno}`,
+        latex: `\\frac{4${v}}{0} = \\frac{4}{0}`,
+        corner: `\\frac{4${v}}{0} = \\frac{4}{0}`,
+        explanation: `\\frac{4${v}}{0} = \\frac{4}{0} \\implies \\text{División entre cero / Indeterminación (Salta turno)}`,
       },
     ];
 
@@ -265,19 +265,19 @@ export function generateFullDeck(): Card[] {
       });
     });
 
-    // 4. Cartas de Cambio de Sentido (2 por color): Desigualdad multiplicada por -1 que invierte signo
+    // 4. Cartas de Cambio de Sentido (2 por color): Desigualdad compacta que invierte sentido por (-1)
     const reverseExpressions = [
       {
-        latex: `(${v} - 1 > 2) \\cdot (-1) \\implies -${v} + 1 < -2`,
-        corner: `(${v} - 1 > 2) \\cdot (-1) \\implies -${v} + 1 < -2`,
+        latex: `(${v} > 2) \\cdot (-1) \\to -${v} < -2`,
+        corner: `(${v} > 2) \\cdot (-1) \\to -${v} < -2`,
         explanation: `\\text{Al multiplicar por } (-1) \\text{ la desigualdad invierte su sentido } ( > \\to < )`,
-        invertedFrom: `(${v} - 1 > 2) \\cdot (-1)`,
+        invertedFrom: `(${v} > 2) \\cdot (-1)`,
       },
       {
-        latex: `(2${v} \\le 6) \\cdot (-1) \\implies -2${v} \\ge -6`,
-        corner: `(2${v} \\le 6) \\cdot (-1) \\implies -2${v} \\ge -6`,
+        latex: `(${v} \\le 3) \\cdot (-1) \\to -${v} \\ge -3`,
+        corner: `(${v} \\le 3) \\cdot (-1) \\to -${v} \\ge -3`,
         explanation: `\\text{Al multiplicar por } (-1) \\text{ la desigualdad invierte su sentido } ( \\le \\to \\ge )`,
-        invertedFrom: `(2${v} \\le 6) \\cdot (-1)`,
+        invertedFrom: `(${v} \\le 3) \\cdot (-1)`,
       },
     ];
 

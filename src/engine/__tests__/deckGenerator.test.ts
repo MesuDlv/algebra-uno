@@ -121,13 +121,14 @@ describe('Generador del Mazo ALGEBRA UNO (deckGenerator)', () => {
       });
     });
 
-    it('todas las cartas de bloqueo son igualdades que terminan en 1/0 o 0/0', () => {
+    it('todas las cartas de bloqueo son igualdades que terminan en 1/0 o 4/0 (sin 0/0)', () => {
       const skipCards = deck.filter((c) => c.type === 'skip');
 
       skipCards.forEach((card) => {
         expect(card.metadata?.denominator).toBe(0);
-        // Debe ser una igualdad que termina en = \frac{1}{0} o = \frac{0}{0}
-        expect(card.expressionLatex).toMatch(/=\s*\\frac\{[01]\}\{0\}/);
+        // Debe ser una igualdad que termina en = \frac{1}{0} o = \frac{4}{0}
+        expect(card.expressionLatex).toMatch(/=\s*\\frac\{[14]\}\{0\}/);
+        expect(card.expressionLatex).not.toContain('\\frac{0}{0}');
       });
     });
 
@@ -136,10 +137,10 @@ describe('Generador del Mazo ALGEBRA UNO (deckGenerator)', () => {
 
       reverseCards.forEach((card) => {
         expect(card.expressionLatex).toContain('(-1)');
-        expect(card.expressionLatex).toContain('\\implies');
+        expect(card.expressionLatex).toContain('\\to');
 
         // Comprobar que si el original tenía '>', la consecuencia tiene '<' (o '\le' a '\ge')
-        const parts = card.expressionLatex.split('\\implies');
+        const parts = card.expressionLatex.split('\\to');
         const lhs = parts[0];
         const rhs = parts[1];
 
