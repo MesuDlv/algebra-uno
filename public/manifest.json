@@ -1,0 +1,19 @@
+{
+  "name": "ALGEBRA UNO",
+  "short_name": "AlgebraUno",
+  "description": "Juego de cartas algebraico multijugador online estilo UNO",
+  "start_url": "/algebra-uno/",
+  "scope": "/algebra-uno/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#020617",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "/algebra-uno/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

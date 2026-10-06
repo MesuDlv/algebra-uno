@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useGameRoom } from '../hooks/useGameRoom';
 import { OpponentsBar } from '../components/game/OpponentsBar';
 import { TableCenter } from '../components/game/TableCenter';
@@ -7,7 +7,9 @@ import { ColorPickerModal } from '../components/game/ColorPickerModal';
 import { VictoryModal } from '../components/game/VictoryModal';
 import { CardZoomModal } from '../components/card/CardZoomModal';
 import { Card as CardType, CardColor } from '../types/card';
-import { LogOut, BookOpen, Clock } from 'lucide-react';
+import { soundEffects } from '../utils/audio';
+import { triggerHaptic } from '../utils/haptics';
+import { LogOut, BookOpen, Clock, Volume2, VolumeX } from 'lucide-react';
 
 interface GamePageProps {
   roomId: string;
@@ -38,6 +40,42 @@ export const GamePage: React.FC<GamePageProps> = ({
 
   const [pendingWildCard, setPendingWildCard] = useState<CardType | null>(null);
   const [zoomedCard, setZoomedCard] = useState<CardType | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(soundEffects.isSoundEnabled());
+
+  const prevIsMyTurnRef = useRef<boolean>(false);
+  const prevStatusRef = useRef<string>(gameState.status);
+
+  // Efecto cuando cambia a mi turno
+  useEffect(() => {
+    if (isMyTurn && !prevIsMyTurnRef.current) {
+      if (gameState.accumulatedDrawCount > 0) {
+        soundEffects.attack();
+        triggerHaptic('attack');
+      } else {
+        soundEffects.yourTurn();
+        triggerHaptic('light');
+      }
+    }
+    prevIsMyTurnRef.current = isMyTurn;
+  }, [isMyTurn, gameState.accumulatedDrawCount]);
+
+  // Efecto cuando finaliza la partida
+  useEffect(() => {
+    if (gameState.status === 'finished' && prevStatusRef.current !== 'finished') {
+      soundEffects.victory();
+      triggerHaptic('victory');
+    }
+    prevStatusRef.current = gameState.status;
+  }, [gameState.status]);
+
+  const toggleAudio = () => {
+    const nextState = soundEffects.toggleSound();
+    setSoundEnabled(nextState);
+    if (nextState) {
+      soundEffects.playCard();
+      triggerHaptic('light');
+    }
+  };
 
   const myPlayer = gameState.players.find((p) => p.uid === currentUserUid);
   const opponents = gameState.players.filter((p) => p.uid !== currentUserUid);
@@ -50,6 +88,8 @@ export const GamePage: React.FC<GamePageProps> = ({
 
   // Al seleccionar jugar una carta normal
   const handlePlayNormalCard = async (cardId: string) => {
+    soundEffects.playCard();
+    triggerHaptic('medium');
     try {
       await playCard(cardId);
     } catch (err) {
@@ -59,6 +99,8 @@ export const GamePage: React.FC<GamePageProps> = ({
 
   // Al seleccionar una carta comodín (abre el selector de color)
   const handlePlayWildCard = (card: CardType) => {
+    soundEffects.playCard();
+    triggerHaptic('light');
     setPendingWildCard(card);
   };
 
@@ -67,10 +109,45 @@ export const GamePage: React.FC<GamePageProps> = ({
     if (!pendingWildCard) return;
     const cardId = pendingWildCard.id;
     setPendingWildCard(null);
+    soundEffects.playCard();
+    triggerHaptic('medium');
     try {
       await playCard(cardId, color);
     } catch (err) {
       console.error('Error al jugar comodín:', err);
+    }
+  };
+
+  // Al robar carta
+  const handleDrawCard = async () => {
+    soundEffects.drawCard();
+    triggerHaptic('medium');
+    try {
+      await drawCard();
+    } catch (err) {
+      console.error('Error al robar carta:', err);
+    }
+  };
+
+  // Al cantar UNO
+  const handleCallUno = async () => {
+    soundEffects.unoCall();
+    triggerHaptic('uno');
+    try {
+      await callUno();
+    } catch (err) {
+      console.error('Error al cantar UNO:', err);
+    }
+  };
+
+  // Al atrapar a un rival
+  const handleCatchUno = async (targetUid: string) => {
+    soundEffects.playCard();
+    triggerHaptic('heavy');
+    try {
+      await catchUno(targetUid);
+    } catch (err) {
+      console.error('Error al atrapar:', err);
     }
   };
 
@@ -80,6 +157,8 @@ export const GamePage: React.FC<GamePageProps> = ({
     gameState.pendingColorPlayerId === currentUserUid;
 
   const handlePendingColorSelection = async (color: CardColor) => {
+    soundEffects.playCard();
+    triggerHaptic('medium');
     try {
       await chooseColor(color);
     } catch (err) {
@@ -101,13 +180,28 @@ export const GamePage: React.FC<GamePageProps> = ({
     <div className="relative min-h-screen max-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950 text-white flex flex-col justify-between overflow-hidden select-none">
       {/* Barra superior de la mesa */}
       <header className="w-full flex items-center justify-between px-3 py-2 z-20 bg-slate-950/60 backdrop-blur-md border-b border-slate-800/80">
-        <button
-          onClick={handleExit}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-xs font-semibold"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Salir</span>
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={handleExit}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-xs font-semibold cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Salir</span>
+          </button>
+
+          {/* Botón de Sonido Mute/Unmute */}
+          <button
+            onClick={toggleAudio}
+            className="p-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-xs cursor-pointer"
+            title={soundEnabled ? 'Silenciar sonido' : 'Activar sonido'}
+          >
+            {soundEnabled ? (
+              <Volume2 className="w-3.5 h-3.5 text-amber-300" />
+            ) : (
+              <VolumeX className="w-3.5 h-3.5 text-slate-500" />
+            )}
+          </button>
+        </div>
 
         {/* Indicador de Turno */}
         <div className="flex items-center gap-2">
@@ -126,7 +220,7 @@ export const GamePage: React.FC<GamePageProps> = ({
           {!isMyTurn && currentTurnPlayer && (
             <button
               onClick={() => skipInactivePlayer(currentTurnPlayer.uid)}
-              className="text-[10px] text-slate-500 hover:text-slate-300 underline ml-1"
+              className="text-[10px] text-slate-500 hover:text-slate-300 underline ml-1 cursor-pointer"
               title="Saltar si se ausentó más de 60 segundos"
             >
               ¿Ausente?
@@ -134,7 +228,7 @@ export const GamePage: React.FC<GamePageProps> = ({
           )}
         </div>
 
-        {/* Modo Ayuda badge */}
+        {/* Info Sala */}
         <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-400">
           <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
           <span className="hidden sm:inline">Sala: {roomId}</span>
@@ -149,7 +243,7 @@ export const GamePage: React.FC<GamePageProps> = ({
           allPlayers={gameState.players}
           presence={presence}
           unoVulnerableUids={gameState.unoVulnerableUids}
-          onCatchUno={catchUno}
+          onCatchUno={handleCatchUno}
         />
       </div>
 
@@ -162,7 +256,7 @@ export const GamePage: React.FC<GamePageProps> = ({
         direction={gameState.direction}
         isMyTurn={isMyTurn}
         lastAction={gameState.lastAction}
-        onDrawCard={drawCard}
+        onDrawCard={handleDrawCard}
         onZoomCard={(card) => setZoomedCard(card)}
       />
 
@@ -178,7 +272,7 @@ export const GamePage: React.FC<GamePageProps> = ({
           canPass={Boolean(gameState.drawnCardThisTurn)}
           onPlayCard={handlePlayNormalCard}
           onPlayWild={handlePlayWildCard}
-          onCallUno={callUno}
+          onCallUno={handleCallUno}
           onPassTurn={passTurn}
           onZoomCard={(card) => setZoomedCard(card)}
         />
