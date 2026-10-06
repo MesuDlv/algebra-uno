@@ -332,21 +332,25 @@ export function generateFullDeck(): Card[] {
   const wild4Expressions = [
     {
       latex: `(x + 5) + (x - 1) - 2x = 4`,
+      corner: `(x + 5) + (x - 1) - 2x = 4`,
       explanation: `2x - 2x + (5 - 1) = 4 \\quad \\forall x`,
       evalFn: (x: number) => (x + 5) + (x - 1) - 2 * x,
     },
     {
       latex: `(2x + 7) - (2x + 3) = 4`,
+      corner: `(2x + 7) - (2x + 3) = 4`,
       explanation: `(2x - 2x) + (7 - 3) = 4 \\quad \\forall x`,
       evalFn: (x: number) => (2 * x + 7) - (2 * x + 3),
     },
     {
       latex: `(3x + 6) + (x - 2) - 4x = 4`,
+      corner: `(3x + 6) + (x - 2) - 4x = 4`,
       explanation: `4x - 4x + (6 - 2) = 4 \\quad \\forall x`,
       evalFn: (x: number) => (3 * x + 6) + (x - 2) - 4 * x,
     },
     {
       latex: `(x + 9) - (x + 5) = 4`,
+      corner: `(x + 9) - (x + 5) = 4`,
       explanation: `(x - x) + (9 - 5) = 4 \\quad \\forall x`,
       evalFn: (x: number) => (x + 9) - (x + 5),
     },
@@ -359,7 +363,7 @@ export function generateFullDeck(): Card[] {
       variable: 'x',
       type: 'wild4',
       expressionLatex: exp.latex,
-      displayCornerLatex: `+4`,
+      displayCornerLatex: exp.corner,
       explanationLatex: `${exp.explanation} \\implies \\text{Roba 4 cartas y elige color}`,
       metadata: {
         evalFn: exp.evalFn,
@@ -375,8 +379,8 @@ export function generateFullDeck(): Card[] {
       variable: 'x',
       type: 'wild',
       expressionLatex: `\\text{Sea } x \\in \\{Y, Z, F, N\\}`,
-      displayCornerLatex: `\\star`,
-      explanationLatex: `\\text{Comodín: Elige cualquier color entre Verde, Rojo, Azul o Amarillo}`,
+      displayCornerLatex: `x \\in \\{Y, Z, F, N\\}`,
+      explanationLatex: `\\text{Comodín: Sea } x \\text{ cualquier variable. Elige color}`,
     });
   }
 

@@ -198,7 +198,7 @@ export function GalleryPage() {
       </div>
 
       {/* Cards Grid */}
-      <main className="max-w-6xl mx-auto grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 sm:gap-6 justify-items-center">
+      <main className="max-w-6xl mx-auto grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8 justify-items-center">
         {filteredDeck.map((card) => (
           <div key={card.id} className="flex flex-col items-center">
             <Card
