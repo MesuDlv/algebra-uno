@@ -40,7 +40,7 @@ export const OpponentsBar: React.FC<OpponentsBarProps> = ({
             className={`relative flex flex-col items-center p-2 rounded-2xl transition-all duration-300 min-w-[76px] sm:min-w-[90px] ${
               isHisTurn
                 ? 'bg-amber-500/20 border-2 border-amber-400 shadow-lg shadow-amber-500/25 scale-105'
-                : 'bg-slate-900/60 border border-slate-700/60 backdrop-blur-md'
+                : 'bg-black/40 border border-white/15 backdrop-blur-md'
             }`}
           >
             {/* Indicador de turno pulsante */}

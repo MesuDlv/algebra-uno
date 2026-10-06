@@ -23,6 +23,10 @@
   background: radial-gradient(circle at center, #ea580c 0%, #dc2626 50%, #7f1d1d 100%);
 }
 
+.uno-board-bg {
+  background: radial-gradient(ellipse at 50% 45%, #ea580c 0%, #c2410c 35%, #9a3412 65%, #431407 100%);
+}
+
 .uno-card-shadow {
   box-shadow: -2px 4px 14px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.25);
 }

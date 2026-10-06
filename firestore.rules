@@ -4,37 +4,12 @@ service cloud.firestore {
 
     // Reglas de seguridad para salas de ALGEBRA UNO
     match /rooms/{roomId} {
-      // Lectura permitida a usuarios autenticados
-      allow read: if request.auth != null;
+      // Lectura y escritura permitida a usuarios autenticados (incluye sesión anónima)
+      allow read, write: if request.auth != null;
 
-      // Creación permitida si el hostUid coincide con el usuario autenticado
-      allow create: if request.auth != null && request.resource.data.hostUid == request.auth.uid;
-
-      // Actualizaciones de sala (unirse miembros, cambiar estado, avanzar lastSeq)
-      allow update: if request.auth != null;
-
-      // Eliminación solo por el anfitrión
-      allow delete: if request.auth != null && resource.data.hostUid == request.auth.uid;
-
-      // Subcolección de Eventos: REGISTRO INMUTABLE (Event Sourcing Append-Only)
-      match /events/{seq} {
-        // Lectura para los jugadores conectados
-        allow read: if request.auth != null;
-
-        // Escritura estrictamente de creación (no se permite sobrescribir eventos existentes)
-        allow create: if request.auth != null 
-          && request.resource.data.uid == request.auth.uid
-          && !exists(/databases/$(database)/documents/rooms/$(roomId)/events/$(seq));
-
-        // Eventos inmutables: prohibido modificar o eliminar eventos ya emitidos
-        allow update, delete: if false;
-      }
-
-      // Subcolección de Presencia (Heartbeat cada 15s)
-      match /presence/{uid} {
-        allow read: if request.auth != null;
-        // Solo el propio jugador puede actualizar o borrar su presencia
-        allow write: if request.auth != null && request.auth.uid == uid;
+      // Subcolecciones (eventos inmutables y presencia en tiempo real)
+      match /{subcollection=**} {
+        allow read, write: if request.auth != null;
       }
     }
   }

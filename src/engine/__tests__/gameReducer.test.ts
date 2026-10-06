@@ -941,4 +941,64 @@ describe('Motor de Reglas Determinista de ALGEBRA UNO (gameReducer)', () => {
       simulateFullGame(5, 404);
     });
   });
+
+  describe('Abandono de partida (playerLeft)', () => {
+    it('declara victoria automática para el jugador restante si uno abandona en 2 jugadores', () => {
+      let state = gameReducer(createInitialState(), {
+        seq: 1,
+        uid: 'u1',
+        type: 'start',
+        payload: {
+          seed: 123,
+          players: [
+            { uid: 'u1', name: 'Ana', avatar: '📐' },
+            { uid: 'u2', name: 'Beto', avatar: '⚡' },
+          ],
+        },
+      });
+
+      expect(state.status).toBe('playing');
+
+      state = gameReducer(state, {
+        seq: 2,
+        uid: 'u2',
+        type: 'playerLeft',
+        payload: { leavingUid: 'u2' },
+      });
+
+      expect(state.status).toBe('finished');
+      expect(state.winnerUid).toBe('u1');
+      expect(state.players).toHaveLength(1);
+      expect(state.lastAction).toContain('Ana gana la partida');
+    });
+
+    it('continúa la partida si un jugador abandona pero quedan 2 o más jugadores', () => {
+      let state = gameReducer(createInitialState(), {
+        seq: 1,
+        uid: 'u1',
+        type: 'start',
+        payload: {
+          seed: 123,
+          players: [
+            { uid: 'u1', name: 'Ana', avatar: '📐' },
+            { uid: 'u2', name: 'Beto', avatar: '⚡' },
+            { uid: 'u3', name: 'Carlos', avatar: '🧠' },
+          ],
+        },
+      });
+
+      expect(state.status).toBe('playing');
+
+      state = gameReducer(state, {
+        seq: 2,
+        uid: 'u3',
+        type: 'playerLeft',
+        payload: { leavingUid: 'u3' },
+      });
+
+      expect(state.status).toBe('playing');
+      expect(state.players).toHaveLength(2);
+      expect(state.players.map((p) => p.uid)).toEqual(['u1', 'u2']);
+    });
+  });
 });

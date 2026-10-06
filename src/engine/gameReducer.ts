@@ -1,6 +1,6 @@
 import { Card, CardColor } from '../types/card';
 import { GameState, PlayerState } from '../types/game';
-import { GameEvent, StartEventPayload, PlayEventPayload, ChooseColorEventPayload, CatchUnoEventPayload, RematchEventPayload } from '../types/event';
+import { GameEvent, StartEventPayload, PlayEventPayload, ChooseColorEventPayload, CatchUnoEventPayload, RematchEventPayload, PlayerLeftEventPayload } from '../types/event';
 import { generateFullDeck } from './deckGenerator';
 import { createPRNG, shuffleArray } from './prng';
 import { isCardPlayable, getNextPlayerIndex } from './rules';
@@ -551,6 +551,58 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
         },
       };
       return gameReducer(createInitialState(), rematchEvent);
+    }
+
+    case 'playerLeft': {
+      if (state.status !== 'playing' && state.status !== 'pendingColor') return state;
+      const payload = event.payload as PlayerLeftEventPayload;
+      const leavingUid = payload?.leavingUid || event.uid;
+
+      const leavingPlayerIndex = state.players.findIndex((p) => p.uid === leavingUid);
+      if (leavingPlayerIndex === -1) return state;
+
+      const leavingPlayer = state.players[leavingPlayerIndex];
+      const nextPlayers = state.players.filter((p) => p.uid !== leavingUid);
+
+      // Si queda 1 solo jugador: victoria automática por abandono
+      if (nextPlayers.length <= 1) {
+        const remainingWinner = nextPlayers[0];
+        return {
+          ...state,
+          status: 'finished',
+          players: nextPlayers,
+          winnerUid: remainingWinner ? remainingWinner.uid : null,
+          accumulatedDrawCount: 0,
+          drawnCardThisTurn: null,
+          lastAction: remainingWinner
+            ? `¡${remainingWinner.name} gana la partida! (${leavingPlayer.name} ha abandonado la partida).`
+            : `${leavingPlayer.name} ha abandonado la partida.`,
+        };
+      }
+
+      // Si quedan 2 o más jugadores: reacomodar el turno
+      let nextTurnIndex = state.currentTurnIndex;
+      if (leavingPlayerIndex < nextTurnIndex) {
+        nextTurnIndex = (nextTurnIndex - 1) % nextPlayers.length;
+      } else if (leavingPlayerIndex === nextTurnIndex) {
+        nextTurnIndex = nextTurnIndex % nextPlayers.length;
+      }
+
+      let nextStatus = state.status;
+      let nextPendingColor = state.pendingColorPlayerId;
+      if (state.pendingColorPlayerId === leavingUid) {
+        nextStatus = 'playing';
+        nextPendingColor = null;
+      }
+
+      return {
+        ...state,
+        status: nextStatus,
+        players: nextPlayers,
+        currentTurnIndex: nextTurnIndex,
+        pendingColorPlayerId: nextPendingColor,
+        lastAction: `${leavingPlayer.name} abandonó la partida.`,
+      };
     }
 
     default:

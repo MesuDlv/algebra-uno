@@ -133,7 +133,7 @@ export const TableCenter: React.FC<TableCenterProps> = ({
       </div>
 
       {/* Indicador de Color Activo y Dirección */}
-      <div className="mt-3 flex items-center gap-3 px-3 py-1.5 rounded-full bg-slate-900/80 border border-slate-700/60 backdrop-blur-md shadow-inner">
+      <div className="mt-3 flex items-center gap-3 px-3.5 py-1.5 rounded-full bg-black/50 border border-white/20 backdrop-blur-md shadow-xl">
         {/* Dirección de juego */}
         <div
           className="flex items-center gap-1 text-[11px] font-semibold text-slate-300"

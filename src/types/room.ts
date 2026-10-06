@@ -4,6 +4,7 @@ export interface RoomMember {
   avatar: string;
   isHost: boolean;
   joinedAt: number;
+  isSpectator?: boolean;
 }
 
 export type RoomStatus = 'waiting' | 'playing' | 'finished';

@@ -48,18 +48,18 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
   const canStart = room.members.length >= 2;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-between p-4 sm:p-6">
+    <div className="min-h-screen uno-board-bg text-slate-100 flex flex-col items-center justify-between p-4 sm:p-6 select-none">
       {/* Encabezado */}
       <div className="w-full max-w-md flex items-center justify-between mt-2">
         <button
           onClick={onExit}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-xs font-semibold"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/40 hover:bg-black/60 border border-white/20 text-slate-200 hover:text-white text-xs font-semibold cursor-pointer transition"
         >
           <LogOut className="w-3.5 h-3.5" />
           Salir
         </button>
 
-        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+        <div className="text-xs font-bold text-amber-200 uppercase tracking-widest">
           Sala de Espera
         </div>
 
@@ -69,7 +69,7 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
       {/* Contenedor Central */}
       <div className="w-full max-w-md space-y-5 my-auto py-4">
         {/* Tarjeta de Código de Sala */}
-        <div className="p-6 rounded-3xl bg-gradient-to-b from-indigo-950/70 to-slate-900/90 border border-indigo-500/30 shadow-2xl text-center relative overflow-hidden backdrop-blur-md">
+        <div className="p-6 rounded-3xl bg-black/40 border border-white/20 shadow-2xl text-center relative overflow-hidden backdrop-blur-md">
           <span className="text-xs font-extrabold uppercase tracking-widest text-indigo-300">
             Código de la Partida
           </span>

@@ -9,7 +9,8 @@ export type EventType =
   | 'uno'
   | 'catchUno'
   | 'skipTimeout'
-  | 'rematch';
+  | 'rematch'
+  | 'playerLeft';
 
 export interface BaseEvent {
   seq: number;
@@ -45,6 +46,11 @@ export interface RematchEventPayload {
   seed: number;
 }
 
+export interface PlayerLeftEventPayload {
+  leavingUid: string;
+  name?: string;
+}
+
 export type EventPayload =
   | StartEventPayload
   | PlayEventPayload
@@ -52,6 +58,7 @@ export type EventPayload =
   | CatchUnoEventPayload
   | SkipTimeoutEventPayload
   | RematchEventPayload
+  | PlayerLeftEventPayload
   | Record<string, never>; // Para eventos sin payload como draw, pass, uno, etc.
 
 export interface GameEvent extends BaseEvent {

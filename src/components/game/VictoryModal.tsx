@@ -9,6 +9,7 @@ interface VictoryModalProps {
   winnerAvatar: string;
   isCurrentUserWinner: boolean;
   isHost: boolean;
+  subtitle?: string;
   onRequestRematch: () => void;
   onExit: () => void;
 }
@@ -19,6 +20,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   winnerAvatar,
   isCurrentUserWinner,
   isHost,
+  subtitle,
   onRequestRematch,
   onExit,
 }) => {
@@ -76,7 +78,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
               </h2>
 
               <p className="text-sm text-slate-300 mb-6">
-                {isCurrentUserWinner
+                {subtitle
+                  ? subtitle
+                  : isCurrentUserWinner
                   ? '¡Has resuelto tus ecuaciones y te quedaste sin cartas!'
                   : `${winnerName} ha ganado la partida.`}
               </p>

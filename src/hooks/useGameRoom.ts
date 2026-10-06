@@ -138,13 +138,14 @@ export function useGameRoom(roomId: string | null, currentUserUid: string | null
   // Iniciar la partida (Host)
   const startGame = useCallback(async () => {
     if (!roomId || !currentUserUid || !isHost || !room) return;
-    if (room.members.length < 2) {
+    const activePlayers = room.members.filter((m) => !m.isSpectator);
+    if (activePlayers.length < 2) {
       throw new Error('Se necesitan al menos 2 jugadores para iniciar la partida.');
     }
 
     const startPayload = {
       seed: room.seed || Math.floor(Math.random() * 1000000) + 1,
-      players: room.members.map((m) => ({
+      players: activePlayers.map((m) => ({
         uid: m.uid,
         name: m.name,
         avatar: m.avatar,
@@ -255,9 +256,20 @@ export function useGameRoom(roomId: string | null, currentUserUid: string | null
   // Salir de la sala
   const exitRoom = useCallback(async () => {
     if (roomId && currentUserUid) {
+      if (gameState.status === 'playing' || gameState.status === 'pendingColor') {
+        try {
+          await emitGameEvent(roomId, {
+            uid: currentUserUid,
+            type: 'playerLeft',
+            payload: { leavingUid: currentUserUid },
+          });
+        } catch (err) {
+          console.warn('Aviso al emitir playerLeft desde exitRoom:', err);
+        }
+      }
       await leaveRoom(roomId, currentUserUid);
     }
-  }, [roomId, currentUserUid]);
+  }, [roomId, currentUserUid, gameState.status]);
 
   return {
     room,

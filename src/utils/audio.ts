@@ -240,6 +240,38 @@ class SoundEffectsManager {
       // Ignorar
     }
   }
+
+  /**
+   * Sonido de barajeo rápido de cartas
+   */
+  public shuffle() {
+    if (!this.isEnabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      for (let i = 0; i < 7; i++) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const start = ctx.currentTime + i * 0.05;
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(250 + Math.random() * 150, start);
+        osc.frequency.exponentialRampToValueAtTime(100, start + 0.04);
+
+        gain.gain.setValueAtTime(0.18, start);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.04);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(start);
+        osc.stop(start + 0.04);
+      }
+    } catch {
+      // Ignorar
+    }
+  }
 }
 
 export const soundEffects = new SoundEffectsManager();

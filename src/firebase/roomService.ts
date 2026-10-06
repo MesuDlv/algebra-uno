@@ -65,8 +65,21 @@ export async function createRoom(
     seed,
   };
 
-  await setDoc(roomRef, roomData);
-  return roomId;
+  try {
+    await setDoc(roomRef, roomData);
+    return roomId;
+  } catch (error: unknown) {
+    const err = error as { code?: string; message?: string };
+    if (
+      err?.code === 'permission-denied' ||
+      err?.message?.toLowerCase().includes('permission')
+    ) {
+      throw new Error(
+        'Permisos insuficientes en Firestore (PERMISSION_DENIED): Debes publicar las reglas de seguridad en Firebase Console (Firestore Database > Reglas).'
+      );
+    }
+    throw error;
+  }
 }
 
 /**
@@ -109,15 +122,10 @@ export async function joinRoom(roomId: string, profile: PlayerProfile): Promise<
       return { ...room, members: updatedMembers };
     }
 
-    // Si la partida ya empezó y no era miembro, no puede entrar como jugador activo
-    if (room.status !== 'waiting') {
-      throw new Error('La partida ya ha comenzado en esta sala.');
-    }
-
-    // Verificar límite de jugadores
-    if (room.members.length >= room.maxPlayers) {
-      throw new Error(`La sala está llena (máximo ${room.maxPlayers} jugadores).`);
-    }
+    // Si la partida ya empezó o la sala está llena de jugadores activos, entra como ESPECTADOR
+    const activeMembersCount = room.members.filter((m) => !m.isSpectator).length;
+    const isRoomFull = activeMembersCount >= room.maxPlayers;
+    const isSpectator = room.status !== 'waiting' || isRoomFull;
 
     const newMember: RoomMember = {
       uid: user.uid,
@@ -125,6 +133,7 @@ export async function joinRoom(roomId: string, profile: PlayerProfile): Promise<
       avatar: profile.avatar,
       isHost: false,
       joinedAt: Date.now(),
+      isSpectator,
     };
 
     const nextMembers = [...room.members, newMember];
@@ -135,10 +144,31 @@ export async function joinRoom(roomId: string, profile: PlayerProfile): Promise<
 }
 
 /**
- * Remueve a un jugador de la sala (abandono antes de comenzar).
+ * Remueve a un jugador de la sala (abandono de partida o lobby).
+ * Si la partida estaba en curso, emite el evento 'playerLeft' para que el juego declare victoria por abandono.
  */
 export async function leaveRoom(roomId: string, uid: string): Promise<void> {
   const roomRef = doc(db, 'rooms', roomId.toUpperCase());
+
+  // Si la partida estaba en juego, emitir evento playerLeft para sincronizar a todos los jugadores
+  try {
+    const roomSnap = await getDoc(roomRef);
+    if (roomSnap.exists()) {
+      const room = roomSnap.data() as RoomData;
+      if (room.status === 'playing') {
+        const leavingMember = room.members.find((m) => m.uid === uid);
+        if (leavingMember && !leavingMember.isSpectator) {
+          await emitGameEvent(roomId, {
+            uid,
+            type: 'playerLeft',
+            payload: { leavingUid: uid, name: leavingMember.name },
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Aviso al emitir evento playerLeft al salir:', err);
+  }
 
   await runTransaction(db, async (transaction) => {
     const snapshot = await transaction.get(roomRef);
@@ -153,12 +183,13 @@ export async function leaveRoom(roomId: string, uid: string): Promise<void> {
       return;
     }
 
-    // Si el que se fue era el host, transferimos el host al siguiente
+    // Si el que se fue era el host, transferimos el host al siguiente jugador activo
     if (room.hostUid === uid) {
-      nextMembers[0].isHost = true;
+      const nextActiveHost = nextMembers.find((m) => !m.isSpectator) || nextMembers[0];
+      nextActiveHost.isHost = true;
       transaction.update(roomRef, {
         members: nextMembers,
-        hostUid: nextMembers[0].uid,
+        hostUid: nextActiveHost.uid,
       });
     } else {
       transaction.update(roomRef, { members: nextMembers });
