@@ -7,7 +7,7 @@ import {
   PlayerProfile,
 } from '../firebase/auth';
 import { createRoom, joinRoom } from '../firebase/roomService';
-import { Sparkles, Users, BookOpen, ArrowRight, PlusCircle, Check } from 'lucide-react';
+import { Sparkles, Users, BookOpen, ArrowRight, PlusCircle, Check, Eye } from 'lucide-react';
 
 interface LobbyPageProps {
   onJoinRoom: (roomId: string) => void;
@@ -20,6 +20,8 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
   const [joinCode, setJoinCode] = useState('');
   const [maxPlayers, setMaxPlayers] = useState(4);
   const [helpMode, setHelpMode] = useState(true);
+  const [hostAsSpectator, setHostAsSpectator] = useState(false);
+  const [joinAsSpectator, setJoinAsSpectator] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -44,7 +46,6 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
       const updated = savePlayerProfile(trimmed, profile.avatar);
       setProfile(updated);
     }
-    // Si trimmed está vacío, NO forzamos ningún texto en el input para que se pueda borrar y escribir libremente.
   };
 
   const handleAvatarSelect = (avatar: string) => {
@@ -61,7 +62,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
       const currentProfile = savePlayerProfile(finalName, profile.avatar);
       setProfile(currentProfile);
 
-      const roomId = await createRoom(currentProfile, helpMode, maxPlayers);
+      const roomId = await createRoom(currentProfile, helpMode, maxPlayers, hostAsSpectator);
       onJoinRoom(roomId);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al crear la sala';
@@ -86,7 +87,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
       const currentProfile = savePlayerProfile(finalName, profile.avatar);
       setProfile(currentProfile);
 
-      await joinRoom(cleanCode, currentProfile);
+      await joinRoom(cleanCode, currentProfile, joinAsSpectator);
       onJoinRoom(cleanCode);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'No se pudo unir a la sala';
@@ -193,14 +194,14 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
             Crear Nueva Sala
           </h2>
 
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            {/* Jugadores máximos */}
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            {/* Jugadores máximos (2 a 6) */}
             <div className="p-2.5 rounded-2xl bg-black/30 border border-white/10">
               <span className="block text-[11px] font-semibold text-amber-200/80 mb-1.5 flex items-center gap-1">
                 <Users className="w-3.5 h-3.5" /> Jugadores
               </span>
               <div className="flex gap-1">
-                {[2, 3, 4, 5].map((num) => (
+                {[2, 3, 4, 5, 6].map((num) => (
                   <button
                     key={num}
                     type="button"
@@ -237,6 +238,28 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
             </div>
           </div>
 
+          {/* Opción Crear como Espectador */}
+          <div className="mb-4 p-2.5 rounded-2xl bg-black/30 border border-white/10 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Eye className="w-4 h-4 text-purple-300" />
+              <div className="text-left">
+                <div className="text-xs font-bold text-white">Entrar como Anfitrión Espectador</div>
+                <div className="text-[10px] text-slate-400">Verás la partida sin jugar en la mesa</div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setHostAsSpectator(!hostAsSpectator)}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                hostAsSpectator
+                  ? 'bg-purple-600 text-white shadow border border-purple-400'
+                  : 'bg-white/10 text-white/60'
+              }`}
+            >
+              {hostAsSpectator ? 'Sí' : 'No'}
+            </button>
+          </div>
+
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -254,10 +277,26 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
           onSubmit={handleJoinSubmit}
           className="p-5 rounded-3xl bg-black/40 border border-white/15 shadow-2xl backdrop-blur-md"
         >
-          <h2 className="text-base font-bold text-white flex items-center gap-2 mb-3">
-            <Users className="w-5 h-5 text-amber-300" />
-            Unirse a una Sala
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <Users className="w-5 h-5 text-amber-300" />
+              Unirse a una Sala
+            </h2>
+
+            {/* Toggle entrar como espectador */}
+            <button
+              type="button"
+              onClick={() => setJoinAsSpectator(!joinAsSpectator)}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
+                joinAsSpectator
+                  ? 'bg-purple-600/80 border-purple-400 text-white'
+                  : 'bg-black/30 border-white/10 text-slate-300 hover:text-white'
+              }`}
+            >
+              <Eye className="w-3.5 h-3.5 text-purple-300" />
+              <span>{joinAsSpectator ? 'Como Espectador' : 'Como Jugador'}</span>
+            </button>
+          </div>
 
           <div className="flex gap-2">
             <input

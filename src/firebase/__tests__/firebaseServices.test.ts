@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { generateRoomCode } from '../roomService';
+import { generateRoomCode, sanitizeFirestoreData } from '../roomService';
 import { getPlayerProfile, savePlayerProfile, AVAILABLE_AVATARS } from '../auth';
 import { isPlayerTimedOut, TIMEOUT_THRESHOLD_MS } from '../presenceService';
 
@@ -73,6 +73,47 @@ describe('Servicios de Firebase y Gestión de Salas', () => {
     it('detecta correctamente si un jugador superó el tiempo límite de inactividad (> 60 segundos)', () => {
       const oldTimestamp = Date.now() - (TIMEOUT_THRESHOLD_MS + 5000); // Hace 65 segundos
       expect(isPlayerTimedOut(oldTimestamp)).toBe(true);
+    });
+  });
+
+  describe('Sanitización de Datos para Firestore (sanitizeFirestoreData)', () => {
+    it('elimina propiedades undefined anidadas y en la raíz para evitar errores de Transaction.set()', () => {
+      const dirty = {
+        uid: 'user1',
+        type: 'play',
+        payload: {
+          cardId: 'c1',
+          chosenColor: undefined,
+        },
+        other: undefined,
+      };
+
+      const clean = sanitizeFirestoreData(dirty);
+      expect(clean).toEqual({
+        uid: 'user1',
+        type: 'play',
+        payload: {
+          cardId: 'c1',
+        },
+      });
+      expect('chosenColor' in clean.payload).toBe(false);
+      expect('other' in clean).toBe(false);
+    });
+
+    it('preserva valores null, arrays y valores primitivos válidos', () => {
+      const data = {
+        name: 'Ana',
+        score: 0,
+        flag: false,
+        empty: null,
+        tags: ['uno', undefined, 'dos'],
+      };
+
+      const clean = sanitizeFirestoreData(data);
+      expect(clean.name).toBe('Ana');
+      expect(clean.score).toBe(0);
+      expect(clean.flag).toBe(false);
+      expect(clean.empty).toBeNull();
     });
   });
 });

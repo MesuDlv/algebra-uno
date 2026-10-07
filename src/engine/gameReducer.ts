@@ -80,7 +80,7 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
   switch (event.type) {
     case 'start': {
       const payload = event.payload as StartEventPayload;
-      if (!payload || !payload.players || payload.players.length < 2 || payload.players.length > 5) {
+      if (!payload || !payload.players || payload.players.length < 2 || payload.players.length > 6) {
         return state; // Evento ilegal: ignorado
       }
 

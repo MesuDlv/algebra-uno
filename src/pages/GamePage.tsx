@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameRoom } from '../hooks/useGameRoom';
 import { OpponentsBar } from '../components/game/OpponentsBar';
@@ -10,6 +10,7 @@ import { CardZoomModal } from '../components/card/CardZoomModal';
 import { StartGameAnimation } from '../components/game/StartGameAnimation';
 import { DrawPenaltyAnimation } from '../components/game/DrawPenaltyAnimation';
 import { Card as CardType, CardColor } from '../types/card';
+import { isCardPlayable } from '../engine/rules';
 import { soundEffects } from '../utils/audio';
 import { triggerHaptic } from '../utils/haptics';
 import { LogOut, BookOpen, Clock, Volume2, VolumeX, Eye } from 'lucide-react';
@@ -46,12 +47,22 @@ export const GamePage: React.FC<GamePageProps> = ({
   const [zoomedCard, setZoomedCard] = useState<CardType | null>(null);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(soundEffects.isSoundEnabled());
   const [showStartAnimation, setShowStartAnimation] = useState<boolean>(true);
+  const [isDraggingCard, setIsDraggingCard] = useState<boolean>(false);
   const [penaltyCount, setPenaltyCount] = useState<number | null>(null);
   const [gameToast, setGameToast] = useState<string | null>(null);
 
   const prevIsMyTurnRef = useRef<boolean>(false);
   const prevStatusRef = useRef<string>(gameState.status);
   const prevDrawCountRef = useRef<number>(gameState.accumulatedDrawCount);
+  const autoDrawPenaltyRef = useRef<boolean>(false);
+
+  const handleAnimationComplete = useCallback(() => {
+    setShowStartAnimation(false);
+  }, []);
+
+  const handlePenaltyComplete = useCallback(() => {
+    setPenaltyCount(null);
+  }, []);
 
   // Determinar si el usuario actual es espectador
   const isSpectator = Boolean(
@@ -59,12 +70,68 @@ export const GamePage: React.FC<GamePageProps> = ({
     (gameState.players.length > 0 && !gameState.players.some((p) => p.uid === currentUserUid))
   );
 
+  // Si la partida ya avanzó o el usuario es espectador, no mostrar/ocultar animación inicial
+  useEffect(() => {
+    if (isSpectator || gameState.discardPile.length > 1 || (gameState.lastAction !== null && gameState.discardPile.length > 1)) {
+      setShowStartAnimation(false);
+    }
+  }, [isSpectator, gameState.discardPile.length, gameState.lastAction]);
+
   const myPlayer = gameState.players.find((p) => p.uid === currentUserUid);
   const opponents = gameState.players.filter((p) => p.uid !== currentUserUid);
   const topDiscardCard =
     gameState.discardPile.length > 0
       ? gameState.discardPile[gameState.discardPile.length - 1]
       : null;
+
+  // Rival que le queda 1 sola carta y no cantó UNO (vulnerable para atrapar)
+  const vulnerableOpponent = opponents.find((opp) =>
+    gameState.unoVulnerableUids?.includes(opp.uid)
+  );
+
+  // Cuando hay castigo acumulado (+2 o +4) y es mi turno:
+  // Si no puedo defenderme con otro +2 o +4, se reproduce la animación y come automáticamente
+  useEffect(() => {
+    if (!isMyTurn || isSpectator || gameState.status !== 'playing') {
+      autoDrawPenaltyRef.current = false;
+      return;
+    }
+
+    if (gameState.accumulatedDrawCount <= 0 || !topDiscardCard) {
+      autoDrawPenaltyRef.current = false;
+      return;
+    }
+
+    // Verificar si el jugador tiene alguna carta para responder (+2 o +4)
+    const canDefend = (myPlayer?.hand || []).some((card) =>
+      isCardPlayable(card, topDiscardCard, gameState.activeColor, gameState.accumulatedDrawCount)
+    );
+
+    if (!canDefend && !autoDrawPenaltyRef.current) {
+      autoDrawPenaltyRef.current = true;
+      setPenaltyCount(gameState.accumulatedDrawCount);
+
+      // Tiempo prudente para que vea la animación de cartas volando antes de procesar el robo
+      const timer = setTimeout(async () => {
+        try {
+          await drawCard();
+        } catch (err) {
+          console.warn('Error al robar cartas acumuladas automáticamente:', err);
+        }
+      }, 1500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [
+    isMyTurn,
+    isSpectator,
+    gameState.status,
+    gameState.accumulatedDrawCount,
+    topDiscardCard,
+    myPlayer?.hand,
+    gameState.activeColor,
+    drawCard,
+  ]);
 
   const currentTurnPlayer = gameState.players[gameState.currentTurnIndex];
 
@@ -218,17 +285,34 @@ export const GamePage: React.FC<GamePageProps> = ({
   return (
     <div className="relative min-h-screen max-h-screen uno-board-bg text-white flex flex-col justify-between overflow-hidden select-none">
       {/* Animación inicial de barajeo y reparto de 7 cartas */}
-      {showStartAnimation && (
-        <StartGameAnimation onComplete={() => setShowStartAnimation(false)} />
+      {showStartAnimation && !isSpectator && (
+        <StartGameAnimation onComplete={handleAnimationComplete} />
       )}
 
       {/* Animación de penalización de robo (+2, +4) */}
       {penaltyCount !== null && (
         <DrawPenaltyAnimation
           count={penaltyCount}
-          onComplete={() => setPenaltyCount(null)}
+          onComplete={handlePenaltyComplete}
         />
       )}
+
+      {/* Banner Notorio para Atrapar al Rival que no dijo UNO */}
+      <AnimatePresence>
+        {vulnerableOpponent && (
+          <motion.div
+            initial={{ opacity: 0, y: -25, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -25, scale: 0.95 }}
+            onClick={() => handleCatchUno(vulnerableOpponent.uid)}
+            className="fixed top-14 inset-x-3 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-40 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 border-2 border-yellow-300 text-white text-xs sm:text-sm font-black text-center shadow-2xl shadow-red-600/80 backdrop-blur-md cursor-pointer flex items-center justify-center gap-2 animate-bounce select-none"
+            title={`¡Toca para atrapar a ${vulnerableOpponent.name} y forzarlo a robar 2 cartas!`}
+          >
+            <span className="text-base animate-pulse">🚨</span>
+            <span>¡{vulnerableOpponent.name.toUpperCase()} NO DIJO UNO! TOCA AQUÍ PARA ATRAPARLO (+2)</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Toast flotante de avisos o errores */}
       <AnimatePresence>
@@ -327,6 +411,7 @@ export const GamePage: React.FC<GamePageProps> = ({
         direction={gameState.direction}
         isMyTurn={isMyTurn && !isSpectator}
         lastAction={gameState.lastAction}
+        isDraggingCard={isDraggingCard}
         onDrawCard={handleDrawCard}
         onZoomCard={(card) => setZoomedCard(card)}
       />
@@ -342,6 +427,8 @@ export const GamePage: React.FC<GamePageProps> = ({
           hasCalledUno={myPlayer?.hasCalledUno || false}
           canPass={Boolean(gameState.drawnCardThisTurn)}
           isSpectator={isSpectator}
+          showCards={!showStartAnimation}
+          onDragStateChange={(dragging) => setIsDraggingCard(dragging)}
           onPlayCard={handlePlayNormalCard}
           onPlayWild={handlePlayWildCard}
           onCallUno={handleCallUno}

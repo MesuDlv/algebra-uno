@@ -14,7 +14,7 @@ export interface RoomData {
   hostUid: string;
   status: RoomStatus;
   members: RoomMember[];
-  maxPlayers: number;      // 2 a 5 jugadores
+  maxPlayers: number;      // 2 a 6 jugadores
   helpMode: boolean;       // Muestra explicaciones paso a paso de las ecuaciones
   lastSeq: number;         // Último número de secuencia emitido en /events/{seq}
   createdAt: number;

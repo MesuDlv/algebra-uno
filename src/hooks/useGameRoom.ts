@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { RoomData, PresenceInfo } from '../types/room';
 import { GameState } from '../types/game';
 import { GameEvent } from '../types/event';
@@ -46,8 +46,6 @@ export function useGameRoom(roomId: string | null, currentUserUid: string | null
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const eventsMapRef = useRef<Map<number, GameEvent>>(new Map());
-  const lastProcessedSeqRef = useRef<number>(0);
   const profile = getPlayerProfile();
 
   // 1. Suscripción a la sala en tiempo real
@@ -91,35 +89,18 @@ export function useGameRoom(roomId: string | null, currentUserUid: string | null
     if (!roomId) return;
 
     // Reset de estado local al cambiar de sala
-    eventsMapRef.current.clear();
-    lastProcessedSeqRef.current = 0;
     setGameState(createInitialState());
     setEvents([]);
 
-    const unsubscribeEvents = subscribeToEvents(roomId, (newEvent) => {
-      eventsMapRef.current.set(newEvent.seq, newEvent);
+    const unsubscribeEvents = subscribeToEvents(roomId, (allEvents) => {
+      // Reconstruir estado determinísticamente de forma pura desde la lista de eventos
+      let calculatedState = createInitialState();
+      for (const ev of allEvents) {
+        calculatedState = gameReducer(calculatedState, ev);
+      }
 
-      // Reconstruir incrementalmente en orden estricto de seq
-      setEvents((prevEvents) => {
-        const nextEvents = [...prevEvents];
-        if (!nextEvents.some((e) => e.seq === newEvent.seq)) {
-          nextEvents.push(newEvent);
-          nextEvents.sort((a, b) => a.seq - b.seq);
-        }
-        return nextEvents;
-      });
-
-      setGameState((currentState) => {
-        let state = currentState;
-        // Aplicar todos los eventos consecutivos que estén listos
-        while (eventsMapRef.current.has(lastProcessedSeqRef.current + 1)) {
-          const nextSeq = lastProcessedSeqRef.current + 1;
-          const eventToProcess = eventsMapRef.current.get(nextSeq)!;
-          state = gameReducer(state, eventToProcess);
-          lastProcessedSeqRef.current = nextSeq;
-        }
-        return state;
-      });
+      setEvents(allEvents);
+      setGameState(calculatedState);
     });
 
     return () => {
@@ -164,10 +145,14 @@ export function useGameRoom(roomId: string | null, currentUserUid: string | null
   const playCard = useCallback(
     async (cardId: string, chosenColor?: CardColor) => {
       if (!roomId || !currentUserUid) return;
+      const playPayload: { cardId: string; chosenColor?: CardColor } = { cardId };
+      if (chosenColor) {
+        playPayload.chosenColor = chosenColor;
+      }
       await emitGameEvent(roomId, {
         uid: currentUserUid,
         type: 'play',
-        payload: { cardId, chosenColor },
+        payload: playPayload,
       });
     },
     [roomId, currentUserUid]

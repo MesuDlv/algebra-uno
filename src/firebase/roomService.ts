@@ -8,7 +8,6 @@ import {
   onSnapshot,
   runTransaction,
   serverTimestamp,
-  where,
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from './config';
 import { ensureAnonymousAuth, PlayerProfile } from './auth';
@@ -35,7 +34,8 @@ export function generateRoomCode(): string {
 export async function createRoom(
   profile: PlayerProfile,
   helpMode = false,
-  maxPlayers = 5
+  maxPlayers = 6,
+  isSpectator = false
 ): Promise<string> {
   const user = await ensureAnonymousAuth();
   if (!user) throw new Error('No se pudo autenticar el usuario para crear la sala');
@@ -49,6 +49,7 @@ export async function createRoom(
     avatar: profile.avatar,
     isHost: true,
     joinedAt: Date.now(),
+    isSpectator,
   };
 
   const seed = Math.floor(Math.random() * 1000000) + 1;
@@ -58,7 +59,7 @@ export async function createRoom(
     hostUid: user.uid,
     status: 'waiting',
     members: [initialMember],
-    maxPlayers: Math.min(Math.max(maxPlayers, 2), 5),
+    maxPlayers: Math.min(Math.max(maxPlayers, 2), 6),
     helpMode,
     lastSeq: 0,
     createdAt: Date.now(),
@@ -94,9 +95,13 @@ export async function getRoom(roomId: string): Promise<RoomData | null> {
 }
 
 /**
- * Une a un jugador a una sala existente si hay espacio disponible.
+ * Une a un jugador a una sala existente si hay espacio disponible o como espectador.
  */
-export async function joinRoom(roomId: string, profile: PlayerProfile): Promise<RoomData> {
+export async function joinRoom(
+  roomId: string,
+  profile: PlayerProfile,
+  preferredSpectator?: boolean
+): Promise<RoomData> {
   const user = await ensureAnonymousAuth();
   if (!user) throw new Error('No se pudo autenticar el usuario');
 
@@ -111,21 +116,30 @@ export async function joinRoom(roomId: string, profile: PlayerProfile): Promise<
 
     const room = snapshot.data() as RoomData;
 
-    // Verificar si el jugador ya está dentro de la sala (reconexión)
+    // Verificar si el jugador ya está dentro de la sala (reconexión o actualización)
     const existingMember = room.members.find((m) => m.uid === user.uid);
     if (existingMember) {
-      // Si cambió su nombre o avatar, actualizamos su información
       const updatedMembers = room.members.map((m) =>
-        m.uid === user.uid ? { ...m, name: profile.name, avatar: profile.avatar } : m
+        m.uid === user.uid
+          ? {
+              ...m,
+              name: profile.name,
+              avatar: profile.avatar,
+              isSpectator: preferredSpectator !== undefined ? preferredSpectator : m.isSpectator,
+            }
+          : m
       );
       transaction.update(roomRef, { members: updatedMembers });
       return { ...room, members: updatedMembers };
     }
 
-    // Si la partida ya empezó o la sala está llena de jugadores activos, entra como ESPECTADOR
+    // Calcular si entra como espectador
     const activeMembersCount = room.members.filter((m) => !m.isSpectator).length;
     const isRoomFull = activeMembersCount >= room.maxPlayers;
-    const isSpectator = room.status !== 'waiting' || isRoomFull;
+    const isSpectator =
+      preferredSpectator !== undefined
+        ? preferredSpectator
+        : room.status !== 'waiting' || isRoomFull;
 
     const newMember: RoomMember = {
       uid: user.uid,
@@ -140,6 +154,57 @@ export async function joinRoom(roomId: string, profile: PlayerProfile): Promise<
     transaction.update(roomRef, { members: nextMembers });
 
     return { ...room, members: nextMembers };
+  });
+}
+
+/**
+ * Alterna el estado de un usuario entre jugador activo y espectador.
+ */
+export async function toggleSpectatorStatus(roomId: string, uid: string): Promise<boolean> {
+  const roomRef = doc(db, 'rooms', roomId.toUpperCase());
+  return await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(roomRef);
+    if (!snapshot.exists()) throw new Error('La sala no existe');
+    const room = snapshot.data() as RoomData;
+    const member = room.members.find((m) => m.uid === uid);
+    if (!member) throw new Error('Jugador no encontrado en la sala');
+
+    const willBeSpectator = !member.isSpectator;
+    if (!willBeSpectator) {
+      // Si quiere pasar a jugador activo, validar cupo disponible
+      const activeCount = room.members.filter((m) => !m.isSpectator && m.uid !== uid).length;
+      if (activeCount >= room.maxPlayers) {
+        throw new Error(`La mesa está llena (máximo ${room.maxPlayers} jugadores).`);
+      }
+    }
+
+    const nextMembers = room.members.map((m) =>
+      m.uid === uid ? { ...m, isSpectator: willBeSpectator } : m
+    );
+
+    transaction.update(roomRef, { members: nextMembers });
+    return willBeSpectator;
+  });
+}
+
+/**
+ * Actualiza el perfil (nombre y avatar) de un miembro dentro de la sala activa.
+ */
+export async function updateMemberProfileInRoom(
+  roomId: string,
+  uid: string,
+  name: string,
+  avatar: string
+): Promise<void> {
+  const roomRef = doc(db, 'rooms', roomId.toUpperCase());
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(roomRef);
+    if (!snapshot.exists()) return;
+    const room = snapshot.data() as RoomData;
+    const nextMembers = room.members.map((m) =>
+      m.uid === uid ? { ...m, name, avatar } : m
+    );
+    transaction.update(roomRef, { members: nextMembers });
   });
 }
 
@@ -222,6 +287,28 @@ export function subscribeToRoom(
 
 /**
  * Emite un evento en el log inmutable secuencial (Event Sourcing) usando transacciones de Firestore.
+/**
+ * Elimina recursivamente campos con valor 'undefined' para evitar errores de Firestore
+ * ("Function Transaction.set() called with invalid data. Unsupported field value: undefined").
+ */
+export function sanitizeFirestoreData<T>(data: T): T {
+  if (data === null || typeof data !== 'object') {
+    return data;
+  }
+  if (Array.isArray(data)) {
+    return data.map(sanitizeFirestoreData) as unknown as T;
+  }
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) {
+      result[key] = sanitizeFirestoreData(value);
+    }
+  }
+  return result as T;
+}
+
+/**
+ * Emite un evento en el log inmutable secuencial (Event Sourcing) usando transacciones de Firestore.
  * Garantiza seq = lastSeq + 1 sin colisiones concurrentes.
  */
 export async function emitGameEvent(
@@ -246,9 +333,10 @@ export async function emitGameEvent(
       seq: nextSeq,
     };
 
-    // Guardar evento y actualizar lastSeq atómicamente
+    // Guardar evento y actualizar lastSeq atómicamente, sanitizando posibles campos 'undefined'
+    const sanitizedEvent = sanitizeFirestoreData(fullEvent);
     transaction.set(eventRef, {
-      ...fullEvent,
+      ...sanitizedEvent,
       timestamp: serverTimestamp(),
     });
 
@@ -264,39 +352,36 @@ export async function emitGameEvent(
 }
 
 /**
- * Escucha en tiempo real la secuencia de eventos de la sala en orden ascendente (seq 1, 2, 3...).
+ * Escucha en tiempo real la lista completa de eventos de la sala en orden ascendente (seq 1, 2, 3...).
  */
 export function subscribeToEvents(
   roomId: string,
-  onEventReceived: (event: GameEvent) => void,
-  fromSeq = 1
+  onEventsUpdate: (events: GameEvent[]) => void
 ): () => void {
   const eventsCol = collection(db, 'rooms', roomId.toUpperCase(), 'events');
   const eventsQuery = query(
     eventsCol,
-    where('seq', '>=', fromSeq),
     orderBy('seq', 'asc')
   );
 
   return onSnapshot(
     eventsQuery,
     (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === 'added') {
-          const data = change.doc.data();
-          const gameEvent: GameEvent = {
-            seq: data.seq,
-            uid: data.uid,
-            type: data.type,
-            payload: data.payload,
-            timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : Date.now(),
-          };
-          onEventReceived(gameEvent);
-        }
+      const allEvents: GameEvent[] = snapshot.docs.map((docSnap) => {
+        const data = docSnap.data();
+        return {
+          seq: data.seq,
+          uid: data.uid,
+          type: data.type,
+          payload: data.payload,
+          timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : Date.now(),
+        };
       });
+      onEventsUpdate(allEvents);
     },
     (error) => {
       console.error('Error al escuchar eventos de la sala:', error);
     }
   );
 }
+

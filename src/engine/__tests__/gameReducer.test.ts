@@ -45,6 +45,32 @@ describe('Motor de Reglas Determinista de ALGEBRA UNO (gameReducer)', () => {
     expect(totalCardsInGame).toBe(108);
   });
 
+  it('soporta el modo de 6 jugadores repartiendo 7 cartas a cada uno y conservando las 108 cartas', () => {
+    const players6 = [
+      { uid: 'u1', name: 'Ana', avatar: 'avatar1' },
+      { uid: 'u2', name: 'Beto', avatar: 'avatar2' },
+      { uid: 'u3', name: 'Carlos', avatar: 'avatar3' },
+      { uid: 'u4', name: 'Diana', avatar: 'avatar4' },
+      { uid: 'u5', name: 'Elena', avatar: 'avatar5' },
+      { uid: 'u6', name: 'Fernando', avatar: 'avatar6' },
+    ];
+    const startEvent: GameEvent = {
+      seq: 1,
+      uid: 'u1',
+      type: 'start',
+      payload: { seed: 99, players: players6 },
+    };
+
+    const state = gameReducer(createInitialState(), startEvent);
+    expect(state.status).toBe('playing');
+    expect(state.players).toHaveLength(6);
+    state.players.forEach((p) => expect(p.hand).toHaveLength(7));
+    const totalHandCards = state.players.reduce((sum, p) => sum + p.hand.length, 0);
+    expect(totalHandCards).toBe(42);
+    const totalCardsInGame = totalHandCards + state.deck.length + state.discardPile.length;
+    expect(totalCardsInGame).toBe(108);
+  });
+
   it('respeta la regla de coincidencia algebraica por solución matemática (ej. Verde 2 sobre Rojo 2)', () => {
     const green2: Card = {
       id: 'g2',

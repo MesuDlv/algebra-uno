@@ -13,6 +13,7 @@ interface TableCenterProps {
   direction: 1 | -1;
   isMyTurn: boolean;
   lastAction: string | null;
+  isDraggingCard?: boolean;
   onDrawCard: () => void;
   onZoomCard?: (card: CardType) => void;
 }
@@ -33,6 +34,7 @@ export const TableCenter: React.FC<TableCenterProps> = ({
   direction,
   isMyTurn,
   lastAction,
+  isDraggingCard = false,
   onDrawCard,
   onZoomCard,
 }) => {
@@ -98,8 +100,25 @@ export const TableCenter: React.FC<TableCenterProps> = ({
           <span className="mt-1 text-[11px] font-semibold text-slate-400">Mazo</span>
         </div>
 
-        {/* Pila de Descarte con la carta superior */}
+        {/* Pila de Descarte con la carta superior y zona de soltar carta */}
         <div className="flex flex-col items-center relative">
+          {/* Zona de Drop animada cuando se arrastra una carta */}
+          <AnimatePresence>
+            {isDraggingCard && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: [1, 1.06, 1] }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ repeat: Infinity, duration: 1.2 }}
+                className="absolute -inset-3 rounded-3xl border-4 border-dashed border-yellow-300 bg-yellow-400/20 backdrop-blur-sm z-30 pointer-events-none flex flex-col items-center justify-center shadow-[0_0_30px_rgba(250,204,21,0.6)]"
+              >
+                <span className="text-[11px] sm:text-xs font-black uppercase text-yellow-200 bg-black/80 px-2.5 py-1 rounded-full border border-yellow-300 shadow">
+                  🎯 ¡Suelta aquí!
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {topDiscardCard ? (
             <div className="relative group">
               <motion.div

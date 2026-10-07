@@ -1,13 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { User } from 'firebase/auth';
-import { ensureAnonymousAuth, subscribeToAuthState } from './firebase/auth';
-import { subscribeToRoom } from './firebase/roomService';
+import { ensureAnonymousAuth, subscribeToAuthState, getPlayerProfile } from './firebase/auth';
+import { subscribeToRoom, joinRoom, leaveRoom } from './firebase/roomService';
 import { RoomData } from './types/room';
 import { LobbyPage } from './pages/LobbyPage';
 import { WaitingRoomPage } from './pages/WaitingRoomPage';
 import { GamePage } from './pages/GamePage';
 import { GalleryPage } from './pages/GalleryPage';
-import { useGameRoom } from './hooks/useGameRoom';
 
 type AppView = 'lobby' | 'waiting' | 'game' | 'gallery';
 
@@ -16,6 +15,7 @@ export default function App() {
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
   const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [view, setView] = useState<AppView>('lobby');
+  const joiningRoomIdRef = useRef<string | null>(null);
 
   // 1. Inicialización y autenticación anónima
   useEffect(() => {
@@ -43,6 +43,7 @@ export default function App() {
   useEffect(() => {
     if (!activeRoomId) {
       setRoomData(null);
+      joiningRoomIdRef.current = null;
       if (view !== 'gallery') {
         setView('lobby');
       }
@@ -54,6 +55,7 @@ export default function App() {
       if (!data) {
         // Sala eliminada o no encontrada
         setActiveRoomId(null);
+        joiningRoomIdRef.current = null;
         setView('lobby');
         return;
       }
@@ -70,11 +72,20 @@ export default function App() {
     };
   }, [activeRoomId, view]);
 
-  // Hook del juego para la sala de espera y acciones de partida
-  const { startGame, exitRoom, presence, isHost } = useGameRoom(
-    activeRoomId,
-    currentUser?.uid || null
-  );
+  // 3. Auto-registro del jugador en los miembros de la sala al entrar por enlace
+  useEffect(() => {
+    if (!activeRoomId || !currentUser || !roomData) return;
+
+    const isMember = roomData.members.some((m) => m.uid === currentUser.uid);
+    if (!isMember && joiningRoomIdRef.current !== activeRoomId) {
+      joiningRoomIdRef.current = activeRoomId;
+      const profile = getPlayerProfile();
+      joinRoom(activeRoomId, profile).catch((err) => {
+        console.warn('Aviso al auto-unirse a la sala:', err);
+        joiningRoomIdRef.current = null;
+      });
+    }
+  }, [activeRoomId, currentUser, roomData]);
 
   const handleJoinOrCreateRoom = (roomId: string) => {
     setActiveRoomId(roomId);
@@ -84,8 +95,8 @@ export default function App() {
   };
 
   const handleLeaveRoom = async () => {
-    if (activeRoomId) {
-      await exitRoom();
+    if (activeRoomId && currentUser) {
+      await leaveRoom(activeRoomId, currentUser.uid).catch(() => {});
       setActiveRoomId(null);
       const url = new URL(window.location.href);
       url.searchParams.delete('room');
@@ -114,9 +125,6 @@ export default function App() {
       <WaitingRoomPage
         room={roomData}
         currentUserUid={currentUser.uid}
-        presence={presence}
-        isHost={isHost}
-        onStartGame={startGame}
         onExit={handleLeaveRoom}
       />
     );

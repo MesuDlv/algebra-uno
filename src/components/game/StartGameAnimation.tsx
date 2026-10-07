@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { soundEffects } from '../../utils/audio';
 
@@ -8,6 +8,8 @@ interface StartGameAnimationProps {
 
 export const StartGameAnimation: React.FC<StartGameAnimationProps> = ({ onComplete }) => {
   const [phase, setPhase] = useState<'shuffling' | 'dealing'>('shuffling');
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     // Sonido de barajar cartas
@@ -20,14 +22,19 @@ export const StartGameAnimation: React.FC<StartGameAnimationProps> = ({ onComple
     }, 1200);
 
     const t2 = setTimeout(() => {
-      onComplete();
+      onCompleteRef.current();
     }, 2800);
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [onComplete]);
+  }, []);
+
+  const handleSkip = () => {
+    onCompleteRef.current();
+  };
+
 
   return (
     <AnimatePresence>
@@ -35,7 +42,7 @@ export const StartGameAnimation: React.FC<StartGameAnimationProps> = ({ onComple
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 pointer-events-none flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm select-none"
+        className="fixed inset-0 z-50 pointer-events-none flex flex-col items-center justify-center bg-black/85 backdrop-blur-md select-none"
       >
         <div className="relative flex flex-col items-center">
           {/* Título de estado */}
@@ -114,7 +121,7 @@ export const StartGameAnimation: React.FC<StartGameAnimationProps> = ({ onComple
         {/* Botón para omitir si el jugador tiene prisa */}
         <button
           type="button"
-          onClick={onComplete}
+          onClick={handleSkip}
           className="pointer-events-auto mt-12 px-4 py-1.5 rounded-full bg-black/40 hover:bg-black/60 border border-white/20 text-white/70 hover:text-white text-xs font-semibold backdrop-blur-sm cursor-pointer transition"
         >
           Saltar animación

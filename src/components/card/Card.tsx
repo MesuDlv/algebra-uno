@@ -94,12 +94,18 @@ export function Card({
   const expression = card.displayCornerLatex || card.expressionLatex;
 
   return (
-    <motion.button
-      type="button"
+    <motion.div
+      role="button"
+      tabIndex={disabled ? -1 : 0}
       whileHover={!disabled ? { scale: 1.04, y: -6 } : undefined}
       whileTap={!disabled ? { scale: 0.96 } : undefined}
       onClick={!disabled ? onClick : undefined}
-      disabled={disabled}
+      onKeyDown={(e) => {
+        if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
       className={`
         relative select-none flex flex-col justify-between p-2 sm:p-2.5 overflow-hidden
         ${sizeTheme.container}
@@ -215,6 +221,6 @@ export function Card({
           <MathView math={expression} className={`${sizeTheme.mathClass} font-mono font-bold leading-tight`} />
         </div>
       </div>
-    </motion.button>
+    </motion.div>
   );
 }

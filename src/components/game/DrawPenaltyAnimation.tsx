@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Flame } from 'lucide-react';
 import { soundEffects } from '../../utils/audio';
@@ -12,14 +12,17 @@ export const DrawPenaltyAnimation: React.FC<DrawPenaltyAnimationProps> = ({
   count,
   onComplete,
 }) => {
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
   useEffect(() => {
     soundEffects.attack();
     const timer = setTimeout(() => {
-      onComplete();
-    }, 2200);
+      onCompleteRef.current();
+    }, 2000);
 
     return () => clearTimeout(timer);
-  }, [onComplete]);
+  }, []);
 
   return (
     <AnimatePresence>
