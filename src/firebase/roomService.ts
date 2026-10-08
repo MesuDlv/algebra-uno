@@ -188,6 +188,22 @@ export async function toggleSpectatorStatus(roomId: string, uid: string): Promis
 }
 
 /**
+ * Establece explícitamente si un usuario es espectador (ej. descalificado tras desconexión).
+ */
+export async function setMemberSpectator(roomId: string, uid: string, isSpectator: boolean): Promise<void> {
+  const roomRef = doc(db, 'rooms', roomId.toUpperCase());
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(roomRef);
+    if (!snapshot.exists()) return;
+    const room = snapshot.data() as RoomData;
+    const nextMembers = room.members.map((m) =>
+      m.uid === uid ? { ...m, isSpectator } : m
+    );
+    transaction.update(roomRef, { members: nextMembers });
+  });
+}
+
+/**
  * Actualiza el perfil (nombre y avatar) de un miembro dentro de la sala activa.
  */
 export async function updateMemberProfileInRoom(
@@ -259,6 +275,55 @@ export async function leaveRoom(roomId: string, uid: string): Promise<void> {
     } else {
       transaction.update(roomRef, { members: nextMembers });
     }
+  });
+}
+
+/**
+ * Añade un bot de práctica/test a la sala.
+ */
+export async function addBotToRoom(
+  roomId: string,
+  botName = '🤖 Bot Pitágoras',
+  botAvatar = '🧠'
+): Promise<void> {
+  const roomRef = doc(db, 'rooms', roomId.toUpperCase());
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(roomRef);
+    if (!snapshot.exists()) throw new Error('La sala no existe');
+
+    const room = snapshot.data() as RoomData;
+    const activeCount = room.members.filter((m) => !m.isSpectator).length;
+    if (activeCount >= room.maxPlayers) {
+      throw new Error(`La mesa ya está llena (máximo ${room.maxPlayers} jugadores).`);
+    }
+
+    const botId = `bot_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const botMember: RoomMember = {
+      uid: botId,
+      name: botName,
+      avatar: botAvatar,
+      isHost: false,
+      joinedAt: Date.now(),
+      isSpectator: false,
+    };
+
+    const nextMembers = [...room.members, botMember];
+    transaction.update(roomRef, { members: nextMembers });
+  });
+}
+
+/**
+ * Remueve un bot de la sala.
+ */
+export async function removeBotFromRoom(roomId: string, botUid: string): Promise<void> {
+  const roomRef = doc(db, 'rooms', roomId.toUpperCase());
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(roomRef);
+    if (!snapshot.exists()) return;
+
+    const room = snapshot.data() as RoomData;
+    const nextMembers = room.members.filter((m) => m.uid !== botUid);
+    transaction.update(roomRef, { members: nextMembers });
   });
 }
 

@@ -202,7 +202,7 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
       }
 
       // Actualizar jugadores
-      const nextPlayers = state.players.map((p, idx) => {
+      let nextPlayers = state.players.map((p, idx) => {
         if (idx === playerIndex) {
           return {
             ...p,
@@ -214,7 +214,7 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
       });
 
       // Poner la carta en la pila de descarte
-      const nextDiscardPile = [...state.discardPile, cardToPlay];
+      let nextDiscardPile = [...state.discardPile, cardToPlay];
 
       // Verificar si ganó la partida (mano vacía)
       if (nextHand.length === 0) {
@@ -237,8 +237,8 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
       let nextStatus: GameState['status'] = 'playing';
       let pendingColorPlayerId: string | null = null;
       let nextAccumulatedDrawCount = state.accumulatedDrawCount;
-      const nextDeck = [...state.deck];
-      const nextReshuffleCount = state.reshuffleCount;
+      let nextDeck = [...state.deck];
+      let nextReshuffleCount = state.reshuffleCount;
 
       if (cardToPlay.type === 'number') {
         nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1);
@@ -254,27 +254,115 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
           nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1);
         }
       } else if (cardToPlay.type === 'draw2') {
-        // REGLA DE ACUMULACIÓN: Suma 2 cartas al castigo acumulado y pasa el turno al siguiente para defenderse o robar
-        nextAccumulatedDrawCount += 2;
-        nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1);
+        const victimIndex = getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1);
+        const victim = nextPlayers[victimIndex];
+        const victimCanDefend = victim.hand.some((c) => c.type === 'draw2' || c.type === 'wild4');
+
+        if (victimCanDefend) {
+          nextTurnIndex = victimIndex;
+          nextAccumulatedDrawCount = (state.accumulatedDrawCount || 0) + 2;
+        } else {
+          const countToEat = (state.accumulatedDrawCount || 0) + 2;
+          const drawResult = drawCardsDeterministically(
+            { ...state, deck: nextDeck, discardPile: nextDiscardPile, reshuffleCount: nextReshuffleCount },
+            countToEat
+          );
+          nextDeck = drawResult.nextDeck;
+          nextDiscardPile = drawResult.nextDiscard;
+          nextReshuffleCount = drawResult.nextReshuffleCount;
+
+          nextPlayers = nextPlayers.map((p, idx) => {
+            if (idx === victimIndex) {
+              return { ...p, hand: [...p.hand, ...drawResult.drawn], hasCalledUno: false };
+            }
+            return p;
+          });
+
+          nextTurnIndex = getNextPlayerIndex(victimIndex, state.players.length, nextDirection, 1);
+          nextAccumulatedDrawCount = 0;
+        }
       } else if (cardToPlay.type === 'wild') {
         if (payload.chosenColor && payload.chosenColor !== 'wild') {
           nextActiveColor = payload.chosenColor;
+          nextDiscardPile[nextDiscardPile.length - 1] = {
+            ...cardToPlay,
+            color: payload.chosenColor,
+          };
           nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1);
         } else {
           nextStatus = 'pendingColor';
           pendingColorPlayerId = player.uid;
         }
       } else if (cardToPlay.type === 'wild4') {
-        // REGLA DE ACUMULACIÓN: Suma 4 cartas al castigo acumulado.
-        nextAccumulatedDrawCount += 4;
         if (payload.chosenColor && payload.chosenColor !== 'wild') {
           nextActiveColor = payload.chosenColor;
-          nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1);
+          nextDiscardPile[nextDiscardPile.length - 1] = {
+            ...cardToPlay,
+            color: payload.chosenColor,
+          };
+          const victimIndex = getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1);
+          const victim = nextPlayers[victimIndex];
+          const victimCanDefend = victim.hand.some((c) => c.type === 'draw2' || c.type === 'wild4');
+
+          if (victimCanDefend) {
+            nextTurnIndex = victimIndex;
+            nextAccumulatedDrawCount = (state.accumulatedDrawCount || 0) + 4;
+          } else {
+            const countToEat = (state.accumulatedDrawCount || 0) + 4;
+            const drawResult = drawCardsDeterministically(
+              { ...state, deck: nextDeck, discardPile: nextDiscardPile, reshuffleCount: nextReshuffleCount },
+              countToEat
+            );
+            nextDeck = drawResult.nextDeck;
+            nextDiscardPile = drawResult.nextDiscard;
+            nextReshuffleCount = drawResult.nextReshuffleCount;
+
+            nextPlayers = nextPlayers.map((p, idx) => {
+              if (idx === victimIndex) {
+                return { ...p, hand: [...p.hand, ...drawResult.drawn], hasCalledUno: false };
+              }
+              return p;
+            });
+
+            nextTurnIndex = getNextPlayerIndex(victimIndex, state.players.length, nextDirection, 1);
+            nextAccumulatedDrawCount = 0;
+          }
         } else {
           nextStatus = 'pendingColor';
           pendingColorPlayerId = player.uid;
         }
+      }
+
+      let lastActionMsg = `${player.name} jugó ${cardToPlay.variable}`;
+      if (cardToPlay.type === 'skip') {
+        const victim = state.players[getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1)];
+        lastActionMsg = `${player.name} jugó Bloqueo. ¡${victim.name} ha sido bloqueado!`;
+      } else if (cardToPlay.type === 'reverse') {
+        if (state.players.length === 2) {
+          const victim = state.players[getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1)];
+          lastActionMsg = `${player.name} jugó Reversa. ¡${victim.name} ha sido bloqueado!`;
+        } else {
+          const dirText = nextDirection === 1 ? 'Horario (↻)' : 'Antihorario (↺)';
+          lastActionMsg = `${player.name} jugó Reversa. ¡Sentido cambiado a ${dirText}!`;
+        }
+      } else if (cardToPlay.type === 'draw2') {
+        const victim = state.players[getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1)];
+        if (nextAccumulatedDrawCount > 0) {
+          lastActionMsg = `${player.name} jugó +2. ¡${victim.name} puede responder con +2/+4 o comer +${nextAccumulatedDrawCount}!`;
+        } else {
+          lastActionMsg = `${player.name} jugó +2. ¡${victim.name} comió ${(state.accumulatedDrawCount || 0) + 2} cartas y pierde su turno!`;
+        }
+      } else if (cardToPlay.type === 'wild4' && payload.chosenColor && payload.chosenColor !== 'wild') {
+        const victim = state.players[getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1)];
+        if (nextAccumulatedDrawCount > 0) {
+          lastActionMsg = `${player.name} jugó +4 (${payload.chosenColor}). ¡${victim.name} puede responder con +2/+4 o comer +${nextAccumulatedDrawCount}!`;
+        } else {
+          lastActionMsg = `${player.name} jugó +4 (${payload.chosenColor}). ¡${victim.name} comió ${(state.accumulatedDrawCount || 0) + 4} cartas y pierde su turno!`;
+        }
+      } else if (cardToPlay.type === 'wild' && payload.chosenColor && payload.chosenColor !== 'wild') {
+        lastActionMsg = `${player.name} jugó Comodín y cambió el color a ${payload.chosenColor}`;
+      } else if (nextAccumulatedDrawCount > 0) {
+        lastActionMsg = `${player.name} jugó ${cardToPlay.variable} (Acumulado: +${nextAccumulatedDrawCount})`;
       }
 
       return {
@@ -291,7 +379,7 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
         drawnCardThisTurn: null,
         reshuffleCount: nextReshuffleCount,
         unoVulnerableUids,
-        lastAction: `${player.name} jugó ${cardToPlay.variable}${nextAccumulatedDrawCount > 0 ? ` (Acumulado: +${nextAccumulatedDrawCount})` : ''}`,
+        lastAction: lastActionMsg,
       };
     }
 
@@ -302,15 +390,72 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
       const payload = event.payload as ChooseColorEventPayload;
       if (!payload.color || payload.color === 'wild') return state;
 
-      const nextTurnIndex = getNextPlayerIndex(state.currentTurnIndex, state.players.length, state.direction, 1);
+      const topCard = state.discardPile[state.discardPile.length - 1];
+      const playerIndex = state.players.findIndex((p) => p.uid === event.uid);
+      const player = state.players[playerIndex];
+      if (!player) return state;
+
+      let nextDeck = [...state.deck];
+      let nextDiscardPile = [...state.discardPile];
+      let nextReshuffleCount = state.reshuffleCount;
+      let nextPlayers = [...state.players];
+      let nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, state.direction, 1);
+      let nextAccumulatedDrawCount = 0;
+      let lastActionMsg = `${player.name} eligió el color ${payload.color}`;
+
+      // Actualizar el color en la carta superior de descarte para que coincida visualmente
+      if (topCard && (topCard.type === 'wild' || topCard.type === 'wild4')) {
+        nextDiscardPile[nextDiscardPile.length - 1] = {
+          ...topCard,
+          color: payload.color,
+        };
+      }
+
+      // Si la carta recién jugada era un comodín +4 (wild4):
+      if (topCard && topCard.type === 'wild4') {
+        const victimIndex = nextTurnIndex;
+        const victim = nextPlayers[victimIndex];
+        const victimCanDefend = victim.hand.some((c) => c.type === 'draw2' || c.type === 'wild4');
+
+        if (victimCanDefend) {
+          nextTurnIndex = victimIndex;
+          nextAccumulatedDrawCount = (state.accumulatedDrawCount || 0) + 4;
+          lastActionMsg = `${player.name} eligió ${payload.color} (+4). ¡${victim.name} puede responder con +2/+4 o comer +${nextAccumulatedDrawCount}!`;
+        } else {
+          const countToEat = (state.accumulatedDrawCount || 0) + 4;
+          const drawResult = drawCardsDeterministically(
+            { ...state, deck: nextDeck, discardPile: nextDiscardPile, reshuffleCount: nextReshuffleCount },
+            countToEat
+          );
+          nextDeck = drawResult.nextDeck;
+          nextDiscardPile = drawResult.nextDiscard;
+          nextReshuffleCount = drawResult.nextReshuffleCount;
+
+          nextPlayers = nextPlayers.map((p, idx) => {
+            if (idx === victimIndex) {
+              return { ...p, hand: [...p.hand, ...drawResult.drawn], hasCalledUno: false };
+            }
+            return p;
+          });
+
+          nextTurnIndex = getNextPlayerIndex(victimIndex, state.players.length, state.direction, 1);
+          nextAccumulatedDrawCount = 0;
+          lastActionMsg = `${player.name} eligió ${payload.color} (+4). ¡${victim.name} comió ${countToEat} cartas y pierde su turno!`;
+        }
+      }
 
       return {
         ...state,
         status: 'playing',
         activeColor: payload.color,
         pendingColorPlayerId: null,
+        players: nextPlayers,
+        deck: nextDeck,
+        discardPile: nextDiscardPile,
+        reshuffleCount: nextReshuffleCount,
         currentTurnIndex: nextTurnIndex,
-        lastAction: `Color activo cambiado a ${payload.color}`,
+        accumulatedDrawCount: nextAccumulatedDrawCount,
+        lastAction: lastActionMsg,
       };
     }
 
@@ -444,8 +589,8 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
       if (playerIndex === -1) return state;
 
       const player = state.players[playerIndex];
-      // Si tiene 1 o 2 cartas, puede cantar UNO
-      if (player.hand.length > 2) return state;
+      // Solo puede cantar UNO si le queda exactamente 1 carta
+      if (player.hand.length !== 1) return state;
 
       const nextPlayers = state.players.map((p, idx) => {
         if (idx === playerIndex) {

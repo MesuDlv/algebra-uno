@@ -9,12 +9,14 @@
     box-sizing: border-box;
   }
 
-  html, body {
+  html, body, #root {
     margin: 0;
     padding: 0;
     height: 100%;
     width: 100%;
     overflow-x: hidden;
+    overscroll-behavior: none;
+    background-color: #120101;
   }
 }
 
@@ -24,15 +26,58 @@
 }
 
 .uno-board-bg {
-  background: radial-gradient(ellipse at 50% 45%, #ea580c 0%, #c2410c 35%, #9a3412 65%, #431407 100%);
+  background: 
+    radial-gradient(circle at 50% 15%, rgba(234, 88, 12, 0.18) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 50%, #881313 0%, #580d0d 35%, #2a0404 70%, #120101 100%);
+  background-attachment: fixed;
+}
+
+.uno-table-felt {
+  background: 
+    radial-gradient(circle at 50% 40%, rgba(254, 240, 138, 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 50%, #dc2626 0%, #b91c1c 30%, #7f1d1d 65%, #450a0a 100%);
+  box-shadow: 
+    inset 0 0 90px rgba(0, 0, 0, 0.75),
+    inset 0 0 35px rgba(245, 158, 11, 0.4),
+    inset 0 0 15px rgba(254, 240, 138, 0.3),
+    0 0 60px rgba(0, 0, 0, 0.8),
+    0 25px 60px rgba(0, 0, 0, 0.9);
+  border: 3px solid rgba(251, 191, 36, 0.55);
+  position: relative;
+}
+
+.uno-table-felt::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: inherit;
+  border: 1px dashed rgba(251, 191, 36, 0.28);
+  pointer-events: none;
+}
+
+.uno-deck-shadow {
+  box-shadow: 
+    -2px 3px 0px #1e1b4b,
+    -4px 6px 0px #0f172a,
+    -8px 12px 24px rgba(0, 0, 0, 0.7);
+}
+
+.uno-discard-shadow {
+  box-shadow: 
+    -2px 6px 20px rgba(0, 0, 0, 0.6),
+    0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .uno-card-shadow {
-  box-shadow: -2px 4px 14px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.25);
+  box-shadow: 
+    0 6px 18px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
 .uno-card-shadow-active {
-  box-shadow: 0 0 24px rgba(255, 255, 255, 0.8), -3px 6px 20px rgba(0, 0, 0, 0.6);
+  box-shadow: 
+    0 0 25px rgba(255, 255, 255, 0.9), 
+    -3px 8px 24px rgba(0, 0, 0, 0.65);
 }
 
 /* KaTeX custom sizing inside cards */
@@ -47,4 +92,32 @@
 
 .katex-card-large {
   font-size: 1.1rem !important;
+}
+
+/* Ocultar barra de scroll en navegadores conservando el desplazamiento táctil */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Aceleración de renderizado GPU para animaciones fluidas a 60/120fps sin saturar la VRAM en móvil */
+.card-hardware-accel {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  contain: layout style;
+}
+
+/* Estilos de viewport para móvil (Dynamic Viewport Height fijado a pantalla completa) */
+.mobile-game-viewport {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
 }

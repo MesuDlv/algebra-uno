@@ -6,8 +6,8 @@ import {
   AVAILABLE_AVATARS,
   PlayerProfile,
 } from '../firebase/auth';
-import { createRoom, joinRoom } from '../firebase/roomService';
-import { Sparkles, Users, BookOpen, ArrowRight, PlusCircle, Check, Eye } from 'lucide-react';
+import { createRoom, joinRoom, addBotToRoom } from '../firebase/roomService';
+import { Sparkles, Users, BookOpen, ArrowRight, PlusCircle, Check, Eye, Bot } from 'lucide-react';
 
 interface LobbyPageProps {
   onJoinRoom: (roomId: string) => void;
@@ -72,6 +72,25 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
     }
   };
 
+  const handleCreatePracticeWithBot = async () => {
+    setErrorMsg(null);
+    setIsCreating(true);
+    try {
+      const finalName = nameInput.trim() || profile.name || 'Jugador';
+      const currentProfile = savePlayerProfile(finalName, profile.avatar);
+      setProfile(currentProfile);
+
+      const roomId = await createRoom(currentProfile, helpMode, 2, false);
+      await addBotToRoom(roomId, '🤖 Bot Pitágoras', '🧠');
+      onJoinRoom(roomId);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al crear la partida de prueba';
+      setErrorMsg(message);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   const handleJoinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanCode = joinCode.trim().toUpperCase();
@@ -123,12 +142,13 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
         {/* Mensaje de Error si lo hay */}
         {errorMsg && (
           <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-3.5 rounded-2xl bg-rose-950/90 border border-rose-500/60 text-rose-200 text-xs text-left font-medium shadow-lg space-y-1.5"
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className="p-4 rounded-2xl bg-rose-950/90 border border-rose-500/70 text-rose-200 text-xs text-left font-medium shadow-[0_0_30px_rgba(244,63,94,0.3)] backdrop-blur-md space-y-2"
           >
-            <div className="font-semibold text-rose-100 flex items-center gap-1.5">
-              ⚠️ {errorMsg}
+            <div className="font-bold text-rose-100 flex items-center gap-2">
+              <span className="text-base">⚠️</span>
+              <span>{errorMsg}</span>
             </div>
             {errorMsg.includes('Firestore') && (
               <div className="text-[11px] text-amber-200/90 bg-amber-950/40 p-2 rounded-xl border border-amber-500/30 font-normal leading-relaxed">
@@ -269,6 +289,18 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
           >
             {isCreating ? 'Creando sala...' : 'Crear Sala y Esperar Amigos'}
             <ArrowRight className="w-4 h-4" />
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            type="button"
+            onClick={handleCreatePracticeWithBot}
+            disabled={isCreating}
+            className="w-full mt-2.5 py-3 px-4 rounded-2xl bg-purple-950/70 hover:bg-purple-900 border border-purple-400/50 text-purple-200 font-bold text-xs shadow-lg flex items-center justify-center gap-2 cursor-pointer transition disabled:opacity-50"
+          >
+            <Bot className="w-4 h-4 text-purple-300" />
+            <span>🎮 Probar Ahora (Partida Rápida vs Bot)</span>
           </motion.button>
         </div>
 

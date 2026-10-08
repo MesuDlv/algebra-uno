@@ -4,11 +4,15 @@ import { GameState } from '../types/game';
 import { GameEvent } from '../types/event';
 import { CardColor } from '../types/card';
 import { gameReducer, createInitialState } from '../engine/gameReducer';
+import { isCardPlayable } from '../engine/rules';
 import {
   subscribeToRoom,
   subscribeToEvents,
   emitGameEvent,
   leaveRoom,
+  setMemberSpectator,
+  addBotToRoom,
+  removeBotFromRoom,
 } from '../firebase/roomService';
 import {
   startPresenceHeartbeat,
@@ -34,8 +38,11 @@ interface UseGameRoomReturn {
   callUno: () => Promise<void>;
   catchUno: (targetUid: string) => Promise<void>;
   skipInactivePlayer: (targetUid: string) => Promise<void>;
+  disqualifyPlayer: (targetUid: string) => Promise<void>;
   requestRematch: () => Promise<void>;
   exitRoom: () => Promise<void>;
+  addBot: (botName?: string, botAvatar?: string) => Promise<void>;
+  removeBot: (botUid: string) => Promise<void>;
 }
 
 export function useGameRoom(roomId: string | null, currentUserUid: string | null): UseGameRoomReturn {
@@ -227,6 +234,24 @@ export function useGameRoom(roomId: string | null, currentUserUid: string | null
     [roomId, currentUserUid]
   );
 
+  // Descalificar jugador desconectado tras 60 segundos
+  const disqualifyPlayer = useCallback(
+    async (targetUid: string) => {
+      if (!roomId || !currentUserUid) return;
+      try {
+        await setMemberSpectator(roomId, targetUid, true);
+      } catch (err) {
+        console.warn('Aviso al marcar espectador en disqualifyPlayer:', err);
+      }
+      await emitGameEvent(roomId, {
+        uid: currentUserUid,
+        type: 'playerLeft',
+        payload: { leavingUid: targetUid },
+      });
+    },
+    [roomId, currentUserUid]
+  );
+
   // Revancha con nueva semilla
   const requestRematch = useCallback(async () => {
     if (!roomId || !currentUserUid) return;
@@ -256,6 +281,137 @@ export function useGameRoom(roomId: string | null, currentUserUid: string | null
     }
   }, [roomId, currentUserUid, gameState.status]);
 
+  // Añadir bot a la sala
+  const addBot = useCallback(
+    async (botName = '🤖 Bot Pitágoras', botAvatar = '🧠') => {
+      if (!roomId) return;
+      await addBotToRoom(roomId, botName, botAvatar);
+    },
+    [roomId]
+  );
+
+  // Remover bot de la sala
+  const removeBot = useCallback(
+    async (botUid: string) => {
+      if (!roomId) return;
+      await removeBotFromRoom(roomId, botUid);
+    },
+    [roomId]
+  );
+
+  // Lógica de Inteligencia Artificial de Bot para partidas de prueba / práctica
+  useEffect(() => {
+    if (!roomId || !isHost) return;
+
+    // 1. Si el bot debe elegir color
+    if (gameState.status === 'pendingColor' && gameState.pendingColorPlayerId?.startsWith('bot_')) {
+      const botUid = gameState.pendingColorPlayerId;
+      const colors: CardColor[] = ['green', 'red', 'blue', 'yellow'];
+      const timer = setTimeout(async () => {
+        try {
+          const chosen = colors[Math.floor(Math.random() * colors.length)];
+          await emitGameEvent(roomId, {
+            uid: botUid,
+            type: 'chooseColor',
+            payload: { color: chosen },
+          });
+        } catch (err) {
+          console.warn('Error en bot chooseColor:', err);
+        }
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+
+    // 2. Si es el turno normal de un bot
+    if (gameState.status !== 'playing') return;
+    const currentTurnPlayer = gameState.players[gameState.currentTurnIndex];
+    if (!currentTurnPlayer || !currentTurnPlayer.uid.startsWith('bot_')) return;
+
+    const botUid = currentTurnPlayer.uid;
+    const topCard =
+      gameState.discardPile.length > 0
+        ? gameState.discardPile[gameState.discardPile.length - 1]
+        : null;
+
+    if (!topCard) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        // Si el bot tiene 2 cartas, canta UNO preventivamente
+        if (currentTurnPlayer.hand.length === 2 && !currentTurnPlayer.hasCalledUno) {
+          await emitGameEvent(roomId, { uid: botUid, type: 'uno', payload: {} });
+        }
+
+        // Si ya robó carta este turno
+        if (gameState.drawnCardThisTurn) {
+          const drawn = gameState.drawnCardThisTurn;
+          if (isCardPlayable(drawn, topCard, gameState.activeColor, 0)) {
+            const colors: CardColor[] = ['green', 'red', 'blue', 'yellow'];
+            const chosenColor =
+              drawn.color === 'wild' || drawn.type === 'wild' || drawn.type === 'wild4'
+                ? colors[Math.floor(Math.random() * colors.length)]
+                : undefined;
+            await emitGameEvent(roomId, {
+              uid: botUid,
+              type: 'play',
+              payload: { cardId: drawn.id, chosenColor },
+            });
+          } else {
+            await emitGameEvent(roomId, {
+              uid: botUid,
+              type: 'pass',
+              payload: {},
+            });
+          }
+          return;
+        }
+
+        // Buscar cartas jugables
+        const playableCards = currentTurnPlayer.hand.filter((card) =>
+          isCardPlayable(card, topCard, gameState.activeColor, gameState.accumulatedDrawCount)
+        );
+
+        if (playableCards.length > 0) {
+          // Jugar una carta elegida
+          const chosenCard = playableCards[0];
+          const colors: CardColor[] = ['green', 'red', 'blue', 'yellow'];
+          const chosenColor =
+            chosenCard.color === 'wild' || chosenCard.type === 'wild' || chosenCard.type === 'wild4'
+              ? colors[Math.floor(Math.random() * colors.length)]
+              : undefined;
+
+          await emitGameEvent(roomId, {
+            uid: botUid,
+            type: 'play',
+            payload: { cardId: chosenCard.id, chosenColor },
+          });
+        } else {
+          // No tiene carta: robar
+          await emitGameEvent(roomId, {
+            uid: botUid,
+            type: 'draw',
+            payload: {},
+          });
+        }
+      } catch (err) {
+        console.warn('Error en turno del bot:', err);
+      }
+    }, 1100);
+
+    return () => clearTimeout(timer);
+  }, [
+    roomId,
+    isHost,
+    gameState.status,
+    gameState.currentTurnIndex,
+    gameState.pendingColorPlayerId,
+    gameState.drawnCardThisTurn,
+    gameState.accumulatedDrawCount,
+    gameState.activeColor,
+    gameState.discardPile,
+    gameState.players,
+  ]);
+
   return {
     room,
     gameState,
@@ -273,7 +429,10 @@ export function useGameRoom(roomId: string | null, currentUserUid: string | null
     callUno,
     catchUno,
     skipInactivePlayer,
+    disqualifyPlayer,
     requestRematch,
     exitRoom,
+    addBot,
+    removeBot,
   };
 }

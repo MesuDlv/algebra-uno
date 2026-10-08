@@ -17,6 +17,8 @@ import {
   UserCheck,
   Edit2,
   Sparkles,
+  Bot,
+  Trash2,
 } from 'lucide-react';
 
 interface WaitingRoomPageProps {
@@ -36,7 +38,7 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
   onStartGame: propOnStartGame,
   onExit,
 }) => {
-  const { startGame, presence: hookPresence, isHost: hookIsHost } = useGameRoom(room.id, currentUserUid);
+  const { startGame, presence: hookPresence, isHost: hookIsHost, addBot, removeBot } = useGameRoom(room.id, currentUserUid);
   const presence = propPresence || hookPresence;
   const isHost = propIsHost !== undefined ? propIsHost : hookIsHost;
   const handleStartGameAction = propOnStartGame || startGame;
@@ -137,40 +139,52 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
         {/* Aviso de error si hubo */}
         {actionError && (
           <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-3 rounded-2xl bg-rose-950/90 border border-rose-500/60 text-rose-200 text-xs text-center font-bold shadow-lg"
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className="p-3.5 rounded-2xl bg-rose-950/90 border border-rose-500/70 text-rose-200 text-xs text-center font-bold shadow-[0_0_25px_rgba(244,63,94,0.3)] backdrop-blur-md"
           >
             ⚠️ {actionError}
           </motion.div>
         )}
 
         {/* Tarjeta de Código de Sala */}
-        <div className="p-5 rounded-3xl bg-black/40 border border-white/20 shadow-2xl text-center relative overflow-hidden backdrop-blur-md">
-          <span className="text-xs font-extrabold uppercase tracking-widest text-indigo-300">
-            Código de la Partida
+        <div className="p-6 rounded-3xl bg-slate-950/80 border-2 border-indigo-500/30 shadow-[0_0_50px_rgba(79,70,229,0.2)] text-center relative overflow-hidden backdrop-blur-xl">
+          <div className="absolute -top-16 -right-16 w-36 h-36 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-amber-500/15 rounded-full blur-2xl pointer-events-none" />
+
+          <span className="text-[11px] font-extrabold uppercase tracking-widest text-indigo-300 flex items-center justify-center gap-1.5 mb-1">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+            Código de Acceso a la Partida
           </span>
 
-          <div className="my-2 text-4xl sm:text-5xl font-black tracking-widest text-amber-300 font-mono drop-shadow-md select-all">
+          <div className="my-2.5 text-5xl sm:text-6xl font-black tracking-widest text-amber-300 font-mono drop-shadow-[0_0_15px_rgba(252,211,77,0.4)] select-all">
             {room.id}
           </div>
 
-          <div className="flex items-center justify-center gap-2 mt-3">
+          <div className="flex items-center justify-center gap-2.5 mt-4">
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={handleCopyCode}
-              className="flex-1 py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+              className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md ${
+                copiedCode
+                  ? 'bg-emerald-950/80 border-emerald-400 text-emerald-300'
+                  : 'bg-slate-800/90 hover:bg-slate-750 text-slate-200 border-white/10'
+              }`}
             >
               {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              {copiedCode ? '¡Copiado!' : 'Copiar Código'}
+              {copiedCode ? '¡Código Copiado!' : 'Copiar Código'}
             </motion.button>
 
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={handleCopyLink}
-              className="flex-1 py-2 px-3 rounded-xl bg-indigo-600/80 hover:bg-indigo-600 text-xs font-bold text-white border border-indigo-400/30 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+              className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md ${
+                copiedLink
+                  ? 'bg-emerald-950/80 border-emerald-400 text-emerald-300'
+                  : 'bg-indigo-600/90 hover:bg-indigo-500 text-white border-indigo-400/40 shadow-indigo-500/20'
+              }`}
             >
               {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Share2 className="w-3.5 h-3.5" />}
               {copiedLink ? '¡Enlace Copiado!' : 'Copiar Enlace'}
@@ -302,6 +316,22 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
                       Anfitrión
                     </div>
                   )}
+
+                  {member.uid.startsWith('bot_') && isHost && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-purple-300 bg-purple-900/60 px-2 py-0.5 rounded-md border border-purple-400/40">
+                        Bot IA
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeBot(member.uid)}
+                        className="p-1 rounded-lg bg-rose-950/60 hover:bg-rose-900 border border-rose-500/40 text-rose-300 hover:text-white transition"
+                        title="Quitar bot"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </motion.div>
               );
             })}
@@ -355,7 +385,21 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
         {/* Botón de Iniciar o Mensaje de Espera */}
         <div className="pt-2">
           {isHost ? (
-            <div>
+            <div className="space-y-2.5">
+              {/* Botón para añadir bot si falta gente para probar */}
+              {activeMembers.length < room.maxPlayers && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
+                  onClick={() => addBot('🤖 Bot Pitágoras', '🧠')}
+                  className="w-full py-2.5 px-4 rounded-2xl bg-purple-950/70 hover:bg-purple-900/80 border border-purple-400/50 text-purple-200 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md backdrop-blur-sm transition"
+                >
+                  <Bot className="w-4 h-4 text-purple-300 animate-pulse" />
+                  <span>+ Añadir Bot de Práctica (Para probar ahora mismo)</span>
+                </motion.button>
+              )}
+
               <motion.button
                 whileHover={canStart ? { scale: 1.02 } : {}}
                 whileTap={canStart ? { scale: 0.98 } : {}}

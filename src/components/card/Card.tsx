@@ -1,10 +1,11 @@
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Card as CardType, CardColor } from '../../types/card';
 import { MathView } from '../common/MathView';
 
 export interface CardProps {
   card: CardType;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'hand' | 'table';
   isPlayable?: boolean;
   isSelected?: boolean;
   showSolution?: boolean;
@@ -47,37 +48,67 @@ const COLOR_CLASSES: Record<CardColor, { bg: string; text: string; glow: string;
 };
 
 const SIZE_CONFIG = {
+  // Tamaño dinámico optimizado para la mano del jugador (compacto en móvil, amplio y nítido en PC)
+  hand: {
+    container: 'w-[72px] h-[106px] sm:w-[82px] sm:h-[120px] md:w-[100px] md:h-[146px] lg:w-[114px] lg:h-[166px] xl:w-[126px] xl:h-[184px] 2xl:w-[136px] 2xl:h-[198px] rounded-xl sm:rounded-2xl lg:rounded-3xl border-2 lg:border-3 text-[10px] md:text-xs p-1 sm:p-1.5 lg:p-2',
+    oval: 'inset-x-[-12%] inset-y-[14%]',
+    centerVar: 'text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl',
+    headerPadding: 'px-1 py-0.5 sm:px-1.5 sm:py-0.5 lg:px-2 lg:py-1 xl:px-2.5 xl:py-1',
+    mathClass: 'text-[7.5px] sm:text-[9px] md:text-[11px] lg:text-[12.5px] xl:text-[14px]',
+    subBadge: 'text-[6.5px] sm:text-[8px] md:text-[9.5px] lg:text-[10.5px] xl:text-[11.5px] px-1 py-0.2 lg:px-2 lg:py-0.5',
+  },
+  // Tamaño dinámico para la carta de descarte en el centro de la mesa (elegante, visible y bien proporcionada en PC)
+  table: {
+    container: 'w-[78px] h-[114px] sm:w-[88px] sm:h-[128px] md:w-[112px] md:h-[162px] lg:w-[130px] lg:h-[188px] xl:w-[144px] xl:h-[210px] 2xl:w-[154px] 2xl:h-[224px] rounded-2xl lg:rounded-3xl border-2 lg:border-3 p-1.5 sm:p-2 lg:p-2.5 xl:p-3',
+    oval: 'inset-x-[-10%] inset-y-[13%]',
+    centerVar: 'text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl',
+    headerPadding: 'px-1.5 py-0.5 md:px-2.5 md:py-1 lg:px-3 lg:py-1.5 xl:px-3.5 xl:py-1.5',
+    mathClass: 'text-[8.5px] sm:text-[10px] md:text-xs lg:text-sm xl:text-base',
+    subBadge: 'text-[7.5px] sm:text-[9px] md:text-[10px] lg:text-xs xl:text-sm px-1.5 py-0.5 md:px-2 md:py-0.5 xl:px-2.5 xl:py-1',
+  },
+  xs: {
+    container: 'w-[72px] h-[106px] sm:w-[82px] sm:h-[120px] md:w-[96px] md:h-[142px] lg:w-[108px] lg:h-[158px] rounded-xl md:rounded-2xl border-2 md:border-3 text-[10px] md:text-xs p-1 sm:p-1.5 md:p-2',
+    oval: 'inset-x-[-14%] inset-y-[14%]',
+    centerVar: 'text-3xl sm:text-4xl md:text-5xl',
+    headerPadding: 'px-1 py-0.2 md:px-2 md:py-0.5',
+    mathClass: 'text-[8px] sm:text-[9px] md:text-[11px] lg:text-xs',
+    subBadge: 'text-[7px] sm:text-[8px] md:text-[9px] px-1 py-0.2 md:px-1.5 md:py-0.5',
+  },
   sm: {
-    container: 'w-28 h-42 rounded-2xl border-2 text-xs',
-    oval: 'inset-x-[-12%] inset-y-[16%]',
-    centerVar: 'text-5xl',
-    headerPadding: 'px-2 py-0.5',
-    mathClass: 'text-[10px] sm:text-xs',
+    container: 'w-[84px] h-[122px] sm:w-[94px] sm:h-[138px] md:w-[114px] md:h-[168px] lg:w-[128px] lg:h-[188px] rounded-2xl border-2 md:border-3 text-xs md:text-sm p-1.5 sm:p-2 md:p-2.5',
+    oval: 'inset-x-[-12%] inset-y-[14%]',
+    centerVar: 'text-4xl sm:text-5xl md:text-6xl',
+    headerPadding: 'px-1.5 py-0.5 md:px-2.5 md:py-1',
+    mathClass: 'text-[9px] sm:text-[11px] md:text-xs lg:text-sm',
+    subBadge: 'text-[8px] sm:text-[10px] md:text-xs px-1.5 py-0.2 md:px-2 md:py-0.5',
   },
   md: {
-    container: 'w-44 h-64 sm:w-52 sm:h-76 rounded-3xl border-4 text-sm',
+    container: 'w-32 h-48 sm:w-40 sm:h-58 md:w-48 md:h-72 rounded-3xl border-3 md:border-4 text-sm md:text-base p-2 sm:p-2.5 md:p-3',
     oval: 'inset-x-[-10%] inset-y-[14%]',
-    centerVar: 'text-7xl sm:text-8xl',
-    headerPadding: 'px-3 py-1',
-    mathClass: 'text-xs sm:text-sm',
+    centerVar: 'text-6xl sm:text-7xl md:text-8xl',
+    headerPadding: 'px-3 py-1 md:px-4 md:py-1.5',
+    mathClass: 'text-xs sm:text-sm md:text-base',
+    subBadge: 'text-[10px] sm:text-xs md:text-sm px-2 py-0.5 md:px-2.5 md:py-1',
   },
   lg: {
-    container: 'w-60 h-88 sm:w-72 sm:h-[430px] rounded-[32px] border-[5px] text-base',
+    container: 'w-52 h-76 sm:w-60 sm:h-88 md:w-68 md:h-98 rounded-[28px] border-4 text-base p-3 md:p-4',
     oval: 'inset-x-[-8%] inset-y-[12%]',
-    centerVar: 'text-9xl',
-    headerPadding: 'px-4 py-1.5',
-    mathClass: 'text-sm sm:text-base',
+    centerVar: 'text-8xl md:text-9xl',
+    headerPadding: 'px-4 py-1.5 md:px-5 md:py-2',
+    mathClass: 'text-sm sm:text-base md:text-lg',
+    subBadge: 'text-xs sm:text-sm md:text-base px-2.5 py-0.5 md:px-3 md:py-1',
   },
   xl: {
-    container: 'w-80 h-[480px] rounded-[40px] border-[6px] text-lg',
+    container: 'w-64 h-96 sm:w-72 sm:h-[420px] rounded-[36px] border-[5px] text-lg p-4',
     oval: 'inset-x-[-6%] inset-y-[10%]',
-    centerVar: 'text-[120px]',
+    centerVar: 'text-[110px]',
     headerPadding: 'px-5 py-2',
     mathClass: 'text-base sm:text-lg',
+    subBadge: 'text-sm sm:text-base px-3 py-1',
   },
 };
 
-export function Card({
+export const Card = React.memo(function Card({
   card,
   size = 'md',
   isPlayable = false,
@@ -107,17 +138,19 @@ export function Card({
         }
       }}
       className={`
-        relative select-none flex flex-col justify-between p-2 sm:p-2.5 overflow-hidden
+        relative select-none flex flex-col justify-between overflow-hidden
         ${sizeTheme.container}
         ${colorTheme.bg}
         border-white
-        ${isPlayable ? `${colorTheme.glow} ring-4 ring-white animate-pulse` : 'uno-card-shadow'}
+        ${isPlayable ? `${colorTheme.glow} ring-3 sm:ring-4 ring-white animate-pulse` : 'uno-card-shadow'}
         ${isSelected ? 'ring-4 ring-yellow-300 scale-105 z-20 -translate-y-4' : ''}
         ${disabled ? 'opacity-85 cursor-not-allowed' : 'cursor-pointer'}
         transition-all duration-200
         ${className}
       `}
     >
+      {/* Brillo especular diagonal translúcido (Efecto carta plastificada UNO Mobile) */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/35 via-white/5 to-transparent pointer-events-none rounded-inherit z-20" />
       {/* 1. Header Superior: Expresión Matemática Completa */}
       <div className="z-10 w-full flex items-center justify-between">
         <div
@@ -153,14 +186,14 @@ export function Card({
         </span>
 
         {/* Sub-badge central para tipo de acción */}
-        <div className="transform rotate-[26deg] mt-1 z-10">
+        <div className="transform rotate-[26deg] mt-0.5 z-10">
           {card.type === 'wild4' && (
-            <span className="bg-neutral-900 text-yellow-300 font-black px-2 py-0.5 rounded-full text-[10px] sm:text-xs border border-yellow-400/50 shadow">
+            <span className={`bg-neutral-900 text-yellow-300 font-black rounded-full border border-yellow-400/50 shadow ${sizeTheme.subBadge}`}>
               +4 COMODÍN
             </span>
           )}
           {card.type === 'wild' && (
-            <span className="bg-neutral-900 text-white font-extrabold px-2 py-0.5 rounded-full text-[9px] sm:text-[11px] border border-white/30 shadow flex items-center gap-1">
+            <span className={`bg-neutral-900 text-white font-extrabold rounded-full border border-white/30 shadow flex items-center gap-0.5 ${sizeTheme.subBadge}`}>
               <span className="text-green-400 font-mono">Y</span>
               <span className="text-red-400 font-mono">Z</span>
               <span className="text-blue-400 font-mono">F</span>
@@ -168,17 +201,17 @@ export function Card({
             </span>
           )}
           {card.type === 'draw2' && (
-            <span className="bg-black/80 text-white font-black px-2 py-0.5 rounded-full text-[10px] sm:text-xs shadow">
+            <span className={`bg-black/80 text-white font-black rounded-full shadow ${sizeTheme.subBadge}`}>
               +2
             </span>
           )}
           {card.type === 'skip' && (
-            <span className="bg-black/80 text-white font-black px-2 py-0.5 rounded-full text-[10px] sm:text-xs shadow">
+            <span className={`bg-black/80 text-white font-black rounded-full shadow ${sizeTheme.subBadge}`}>
               ⊘ SALTO
             </span>
           )}
           {card.type === 'reverse' && (
-            <span className="bg-black/80 text-white font-black px-2 py-0.5 rounded-full text-[10px] sm:text-xs shadow">
+            <span className={`bg-black/80 text-white font-black rounded-full shadow ${sizeTheme.subBadge}`}>
               ⇄ SENTIDO
             </span>
           )}
@@ -223,4 +256,4 @@ export function Card({
       </div>
     </motion.div>
   );
-}
+});

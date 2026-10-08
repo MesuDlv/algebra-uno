@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles, Layers } from 'lucide-react';
 import { soundEffects } from '../../utils/audio';
 
 interface StartGameAnimationProps {
@@ -23,18 +24,13 @@ export const StartGameAnimation: React.FC<StartGameAnimationProps> = ({ onComple
 
     const t2 = setTimeout(() => {
       onCompleteRef.current();
-    }, 2800);
+    }, 2400);
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
     };
   }, []);
-
-  const handleSkip = () => {
-    onCompleteRef.current();
-  };
-
 
   return (
     <AnimatePresence>
@@ -51,22 +47,32 @@ export const StartGameAnimation: React.FC<StartGameAnimationProps> = ({ onComple
             initial={{ scale: 0.8, opacity: 0, y: -20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.8, opacity: 0, y: 20 }}
-            className="mb-8 px-6 py-2.5 rounded-full bg-gradient-to-r from-amber-500 via-orange-600 to-red-600 text-white font-black text-sm sm:text-base tracking-wider uppercase shadow-2xl border-2 border-yellow-300"
+            className="mb-8 px-6 sm:px-8 py-3 rounded-full bg-gradient-to-r from-amber-500 via-orange-600 to-red-600 text-white font-black text-sm sm:text-base tracking-wider uppercase shadow-[0_0_30px_rgba(249,115,22,0.5)] border-2 border-yellow-300 flex items-center gap-2"
           >
-            {phase === 'shuffling' ? '🃏 ¡Barajando el mazo algebraico!' : '🎴 ¡Repartiendo 7 cartas a tu mano!'}
+            {phase === 'shuffling' ? (
+              <>
+                <Layers className="w-4 h-4 text-yellow-200 animate-spin" />
+                <span>🃏 ¡Barajando el mazo algebraico!</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 text-yellow-200 animate-pulse" />
+                <span>🎴 ¡Repartiendo 7 cartas a tu mano!</span>
+              </>
+            )}
           </motion.div>
 
           {/* Mazo Central con barajeo */}
-          <div className="relative w-32 h-44 sm:w-40 sm:h-56">
+          <div className="relative w-32 h-44 sm:w-44 sm:h-60">
             {phase === 'shuffling' ? (
               // Cartas barajándose
               Array.from({ length: 6 }).map((_, i) => (
                 <motion.div
                   key={i}
                   animate={{
-                    x: [0, (i % 2 === 0 ? 1 : -1) * (20 + i * 8), 0],
-                    rotate: [0, (i % 2 === 0 ? 1 : -1) * (15 + i * 4), 0],
-                    scale: [1, 1.05, 1],
+                    x: [0, (i % 2 === 0 ? 1 : -1) * (24 + i * 10), 0],
+                    rotate: [0, (i % 2 === 0 ? 1 : -1) * (18 + i * 5), 0],
+                    scale: [1, 1.06, 1],
                   }}
                   transition={{
                     repeat: 2,
@@ -74,14 +80,14 @@ export const StartGameAnimation: React.FC<StartGameAnimationProps> = ({ onComple
                     delay: i * 0.06,
                     ease: 'easeInOut',
                   }}
-                  className="absolute inset-0 rounded-2xl border-2 border-indigo-400/50 shadow-xl flex items-center justify-center overflow-hidden"
+                  className="absolute inset-0 rounded-2xl border-2 border-indigo-400/50 shadow-2xl flex items-center justify-center overflow-hidden"
                   style={{
                     background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #0f172a 100%)',
                     zIndex: i,
                   }}
                 >
-                  <div className="w-16 h-24 rounded-full bg-gradient-to-br from-rose-500 via-amber-400 to-emerald-500 -rotate-45 flex items-center justify-center shadow">
-                    <span className="text-white font-black text-xs font-mono rotate-45">UNO</span>
+                  <div className="w-20 h-28 sm:w-24 sm:h-36 rounded-full bg-gradient-to-br from-rose-500 via-amber-400 to-emerald-500 -rotate-45 flex items-center justify-center shadow-lg border-2 border-white/40">
+                    <span className="text-white font-black text-sm sm:text-base font-mono rotate-45 tracking-wider">UNO</span>
                   </div>
                 </motion.div>
               ))
@@ -92,9 +98,9 @@ export const StartGameAnimation: React.FC<StartGameAnimationProps> = ({ onComple
                   key={i}
                   initial={{ x: 0, y: 0, scale: 1, rotate: 0, opacity: 1 }}
                   animate={{
-                    x: (i - 3) * 35,
-                    y: 280,
-                    scale: 0.75,
+                    x: (i - 3) * 40,
+                    y: 300,
+                    scale: 0.8,
                     rotate: (i - 3) * 6,
                     opacity: [1, 1, 0.9],
                   }}
@@ -109,23 +115,14 @@ export const StartGameAnimation: React.FC<StartGameAnimationProps> = ({ onComple
                     zIndex: 20 + i,
                   }}
                 >
-                  <div className="w-16 h-24 rounded-full bg-white flex items-center justify-center shadow">
-                    <span className="text-orange-600 font-black text-lg italic font-display">7</span>
+                  <div className="w-20 h-28 sm:w-24 sm:h-36 rounded-full bg-white flex items-center justify-center shadow-lg border border-amber-200">
+                    <span className="text-orange-600 font-black text-2xl sm:text-3xl italic font-display">7</span>
                   </div>
                 </motion.div>
               ))
             )}
           </div>
         </div>
-
-        {/* Botón para omitir si el jugador tiene prisa */}
-        <button
-          type="button"
-          onClick={handleSkip}
-          className="pointer-events-auto mt-12 px-4 py-1.5 rounded-full bg-black/40 hover:bg-black/60 border border-white/20 text-white/70 hover:text-white text-xs font-semibold backdrop-blur-sm cursor-pointer transition"
-        >
-          Saltar animación
-        </button>
       </motion.div>
     </AnimatePresence>
   );
