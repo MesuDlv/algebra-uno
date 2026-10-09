@@ -115,6 +115,18 @@ export const ShopModal: React.FC<ShopModalProps> = ({
       setEconomy(updatedEco);
       onUpdateEconomy?.(updatedEco);
       setPromoInput('');
+
+      // Auto-equipar el avatar si se desbloqueó uno nuevo
+      if (res.avatarUnlocked) {
+        const item = SHOP_CATALOG.find((i) => i.id === res.avatarUnlocked);
+        if (item) {
+          const profile = getPlayerProfile();
+          savePlayerProfile(profile.name, item.value);
+          setCurrentAvatar(item.value);
+          onProfileUpdated?.();
+        }
+      }
+
       setPromoFeedback({
         type: 'success',
         text: res.message,
@@ -210,27 +222,37 @@ export const ShopModal: React.FC<ShopModalProps> = ({
 
           {/* Catálogo Scrollable */}
           <div className="relative z-10 flex-1 overflow-y-auto space-y-4 pr-1 max-h-[50vh] sm:max-h-[54vh]">
-            {/* ÍTEM DESTACADO: PATRIA MILAGRO */}
             <div className="text-xs font-black uppercase tracking-wider text-amber-300/80 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
-              Recompensa Especial de Avatar
+              Catálogo de Avatares Exclusivos
             </div>
 
-            <div className="max-w-md mx-auto">
+            <div className="max-w-md mx-auto space-y-4">
               {SHOP_CATALOG.map((item) => {
                 const isOwned = economy.unlockedAvatars.includes(item.id);
                 const isEquipped = currentAvatar === item.value;
                 const canAfford = economy.coins >= item.price;
+                const isEpic = item.rarity === 'épico';
 
                 return (
                   <motion.div
                     key={item.id}
                     whileHover={{ scale: 1.01 }}
-                    className="relative rounded-3xl p-4 sm:p-5 flex flex-col justify-between border transition-all bg-gradient-to-b from-amber-950/40 via-slate-900 to-black border-amber-400/60 shadow-[0_0_30px_rgba(245,158,11,0.25)]"
+                    className={`relative rounded-3xl p-4 sm:p-5 flex flex-col justify-between border transition-all ${
+                      isEpic
+                        ? 'bg-gradient-to-b from-purple-950/40 via-slate-900 to-black border-purple-400/50 shadow-[0_0_30px_rgba(168,85,247,0.2)]'
+                        : 'bg-gradient-to-b from-amber-950/40 via-slate-900 to-black border-amber-400/60 shadow-[0_0_30px_rgba(245,158,11,0.25)]'
+                    }`}
                   >
                     {/* Badge de rareza */}
                     <div className="flex items-center justify-between mb-3">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border bg-amber-400 text-slate-950 border-yellow-200">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                          isEpic
+                            ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white border-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.4)]'
+                            : 'bg-amber-400 text-slate-950 border-yellow-200 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                        }`}
+                      >
                         {item.rarity}
                       </span>
 
@@ -243,7 +265,13 @@ export const ShopModal: React.FC<ShopModalProps> = ({
 
                     {/* Previsualización del Avatar Grande */}
                     <div className="flex items-center gap-4 my-2">
-                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-black/60 border-2 border-amber-400/60 p-1 flex items-center justify-center flex-shrink-0 shadow-2xl ring-2 ring-amber-400/30 overflow-hidden">
+                      <div
+                        className={`w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-black/60 border-2 p-1 flex items-center justify-center flex-shrink-0 shadow-2xl ring-2 overflow-hidden ${
+                          isEpic
+                            ? 'border-purple-400/60 ring-purple-400/30'
+                            : 'border-amber-400/60 ring-amber-400/30'
+                        }`}
+                      >
                         <AvatarDisplay
                           avatar={item.value}
                           className="w-full h-full rounded-2xl object-cover"
@@ -256,10 +284,17 @@ export const ShopModal: React.FC<ShopModalProps> = ({
                         <p className="text-[10px] text-slate-400 line-clamp-2 leading-tight mt-0.5">
                           {item.description}
                         </p>
-                        <div className="mt-1 flex items-center gap-1 font-black text-xs text-amber-300">
-                          <Coins className="w-3.5 h-3.5 text-yellow-400" />
-                          <span>{item.price.toLocaleString()}</span>
-                        </div>
+                        {item.codeOnly ? (
+                          <div className="mt-1 flex items-center gap-1 font-black text-xs text-amber-300">
+                            <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Solo con código</span>
+                          </div>
+                        ) : (
+                          <div className="mt-1 flex items-center gap-1 font-black text-xs text-amber-300">
+                            <Coins className="w-3.5 h-3.5 text-yellow-400" />
+                            <span>{item.price.toLocaleString()}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -283,6 +318,20 @@ export const ShopModal: React.FC<ShopModalProps> = ({
                           <Zap className="w-3.5 h-3.5" />
                           EQUIPAR
                         </button>
+                      ) : item.codeOnly ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPromoFeedback({
+                              type: 'error',
+                              text: 'Este avatar exclusivo solo se desbloquea con el código "niñobetun". Ingrésalo en el canje de abajo.',
+                            });
+                          }}
+                          className="w-full py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 text-xs font-black transition active:scale-95 shadow-md flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                          CANJEAR CON CÓDIGO
+                        </button>
                       ) : (
                         <button
                           type="button"
@@ -290,7 +339,9 @@ export const ShopModal: React.FC<ShopModalProps> = ({
                           disabled={!canAfford}
                           className={`w-full py-2 rounded-xl text-xs font-black transition active:scale-95 shadow-md flex items-center justify-center gap-1 ${
                             canAfford
-                              ? 'bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 cursor-pointer'
+                              ? isEpic
+                                ? 'bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white cursor-pointer'
+                                : 'bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 cursor-pointer'
                               : 'bg-white/10 text-slate-400 border border-white/10 cursor-not-allowed opacity-60'
                           }`}
                         >
@@ -316,7 +367,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({
                   type="text"
                   value={promoInput}
                   onChange={(e) => setPromoInput(e.target.value)}
-                  placeholder="Ingresa tu código"
+                  placeholder="Ingresa tu código (ej. niñobetun)"
                   className="flex-1 bg-black/60 border border-white/30 focus:border-amber-400 rounded-xl px-3 py-2 text-xs font-mono uppercase tracking-wider text-amber-300 placeholder:text-slate-400 placeholder:normal-case placeholder:font-sans focus:outline-none transition shadow-inner"
                 />
                 <button

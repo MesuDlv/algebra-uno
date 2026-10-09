@@ -1,7 +1,15 @@
 import React from 'react';
 import patriaMilagroAsset from '../../assets/avatars/patria_milagro.jpg';
+import ninoBetunAsset from '../../assets/avatars/nino_betun.jpg';
+import sixsevenaldoAsset from '../../assets/avatars/sixsevenaldo.jpg';
+import jesusAlCuadradoAsset from '../../assets/avatars/jesus_al_cuadrado.jpg';
 
-export { patriaMilagroAsset };
+export {
+  patriaMilagroAsset,
+  ninoBetunAsset,
+  sixsevenaldoAsset,
+  jesusAlCuadradoAsset,
+};
 
 interface AvatarDisplayProps {
   avatar?: string;
@@ -11,9 +19,30 @@ interface AvatarDisplayProps {
 
 export function resolveAvatarUrl(avatar?: string): string | null {
   if (!avatar) return null;
-  // Si es la recompensa de patria milagro (tanto si viene como /avatars/... o como ruta empaquetada)
-  if (avatar.includes('patria_milagro')) {
+  // Patria Milagro
+  if (avatar === 'avatar_patria_milagro' || avatar.includes('patria_milagro')) {
     return patriaMilagroAsset;
+  }
+  // Niño Betún
+  if (
+    avatar === 'avatar_nino_betun' ||
+    avatar.includes('nino_betun') ||
+    avatar.includes('niñobetun') ||
+    avatar.includes('ninobetun')
+  ) {
+    return ninoBetunAsset;
+  }
+  // sixsevenaldo
+  if (avatar === 'avatar_sixsevenaldo' || avatar.includes('sixsevenaldo')) {
+    return sixsevenaldoAsset;
+  }
+  // Jesús al cuadrado
+  if (
+    avatar === 'avatar_jesus_al_cuadrado' ||
+    avatar.includes('jesus_al_cuadrado') ||
+    avatar.includes('jesusalcuadrado')
+  ) {
+    return jesusAlCuadradoAsset;
   }
   // URLs completas o base64
   if (
@@ -50,10 +79,9 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({
         loading="eager"
         decoding="async"
         onError={(e) => {
-          // Si por alguna razón falla, intentar el asset directo
           const target = e.target as HTMLImageElement;
-          if (target.src !== patriaMilagroAsset) {
-            target.src = patriaMilagroAsset;
+          if (resolvedUrl && target.src !== resolvedUrl) {
+            target.src = resolvedUrl;
           }
         }}
       />

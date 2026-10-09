@@ -98,13 +98,31 @@ describe('Sistema de Economía y Monedas (economy.ts)', () => {
   });
 
   describe('Tienda y Compra de Recompensas', () => {
-    it('incluye únicamente el avatar especial "Patria Milagro" en el catálogo con ruta de imagen', () => {
-      expect(SHOP_CATALOG).toHaveLength(1);
+    it('incluye los avatares especiales en el catálogo con sus rarezas y rutas', () => {
+      expect(SHOP_CATALOG).toHaveLength(4);
+
       const patriaItem = SHOP_CATALOG.find((i) => i.id === 'avatar_patria_milagro');
       expect(patriaItem).toBeDefined();
       expect(patriaItem?.value).toContain('patria_milagro');
       expect(patriaItem?.price).toBe(2500);
       expect(patriaItem?.rarity).toBe('legendario');
+
+      const sixsevenaldoItem = SHOP_CATALOG.find((i) => i.id === 'avatar_sixsevenaldo');
+      expect(sixsevenaldoItem).toBeDefined();
+      expect(sixsevenaldoItem?.name).toBe('sixsevenaldo');
+      expect(sixsevenaldoItem?.rarity).toBe('épico');
+      expect(sixsevenaldoItem?.price).toBe(1500);
+
+      const jesusItem = SHOP_CATALOG.find((i) => i.id === 'avatar_jesus_al_cuadrado');
+      expect(jesusItem).toBeDefined();
+      expect(jesusItem?.name).toBe('Jesús al cuadrado');
+      expect(jesusItem?.rarity).toBe('épico');
+      expect(jesusItem?.price).toBe(1500);
+
+      const ninoBetunItem = SHOP_CATALOG.find((i) => i.id === 'avatar_nino_betun');
+      expect(ninoBetunItem).toBeDefined();
+      expect(ninoBetunItem?.name).toBe('Niño Betún');
+      expect(ninoBetunItem?.codeOnly).toBe(true);
     });
 
     it('rechaza la compra si las monedas son insuficientes', () => {
@@ -121,7 +139,7 @@ describe('Sistema de Economía y Monedas (economy.ts)', () => {
       expect(res.message).toContain('insuficientes');
     });
 
-    it('permite comprar el avatar si tiene saldo suficiente y descuenta el precio', () => {
+    it('permite comprar avatares épicos si tiene saldo suficiente y descuenta el precio', () => {
       savePlayerEconomy({
         coins: 3000,
         victories: 2,
@@ -130,16 +148,30 @@ describe('Sistema de Economía y Monedas (economy.ts)', () => {
         redeemedCodes: [],
       });
 
-      const res = purchaseShopItem('avatar_patria_milagro');
+      const res = purchaseShopItem('avatar_sixsevenaldo');
       expect(res.success).toBe(true);
 
       const updated = getPlayerEconomy();
-      expect(updated.coins).toBe(500); // 3000 - 2500
-      expect(updated.unlockedAvatars).toContain('avatar_patria_milagro');
+      expect(updated.coins).toBe(1500); // 3000 - 1500
+      expect(updated.unlockedAvatars).toContain('avatar_sixsevenaldo');
+    });
+
+    it('no permite comprar con monedas un avatar exclusivo de código (Niño Betún)', () => {
+      savePlayerEconomy({
+        coins: 50000,
+        victories: 10,
+        gamesPlayed: 10,
+        unlockedAvatars: [],
+        redeemedCodes: [],
+      });
+
+      const res = purchaseShopItem('avatar_nino_betun');
+      expect(res.success).toBe(false);
+      expect(res.message).toContain('código secreto');
     });
   });
 
-  describe('Código Promocional Tester', () => {
+  describe('Código Promocional Tester y Niño Betún', () => {
     it('canjea el código BIENVENIDOALAPATRIAMILAGRO y otorga 100,000,000 de monedas', () => {
       const res = redeemPromoCode('BIENVENIDOALAPATRIAMILAGRO');
       expect(res.success).toBe(true);
@@ -154,6 +186,29 @@ describe('Sistema de Economía y Monedas (economy.ts)', () => {
       const res = redeemPromoCode('  bienvenidoalapatriamilagro  ');
       expect(res.success).toBe(true);
       expect(res.coinsAdded).toBe(100_000_000);
+    });
+
+    it('canjea el código niñobetun y desbloquea el avatar de Niño Betún', () => {
+      const res = redeemPromoCode('niñobetun');
+      expect(res.success).toBe(true);
+      expect(res.avatarUnlocked).toBe('avatar_nino_betun');
+
+      const updated = getPlayerEconomy();
+      expect(updated.unlockedAvatars).toContain('avatar_nino_betun');
+      expect(updated.redeemedCodes).toContain('NIÑOBETUN');
+    });
+
+    it('soporta variantes como NIÑOBETUN y ninobetun sin tilde', () => {
+      const res = redeemPromoCode('  ninobetun  ');
+      expect(res.success).toBe(true);
+      expect(res.avatarUnlocked).toBe('avatar_nino_betun');
+    });
+
+    it('no permite canjear dos veces el avatar de Niño Betún', () => {
+      redeemPromoCode('niñobetun');
+      const resRepeat = redeemPromoCode('niñobetun');
+      expect(resRepeat.success).toBe(false);
+      expect(resRepeat.message).toContain('anteriormente');
     });
 
     it('rechaza códigos inválidos', () => {

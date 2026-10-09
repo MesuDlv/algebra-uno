@@ -13,6 +13,7 @@ export interface ShopItem {
   price: number;
   description: string;
   rarity: 'común' | 'raro' | 'épico' | 'legendario';
+  codeOnly?: boolean;
 }
 
 export interface PlayerEconomy {
@@ -24,6 +25,9 @@ export interface PlayerEconomy {
 }
 
 import patriaMilagroAsset from '../assets/avatars/patria_milagro.jpg';
+import ninoBetunAsset from '../assets/avatars/nino_betun.jpg';
+import sixsevenaldoAsset from '../assets/avatars/sixsevenaldo.jpg';
+import jesusAlCuadradoAsset from '../assets/avatars/jesus_al_cuadrado.jpg';
 
 const ECONOMY_STORAGE_KEY = 'algebra_uno_player_economy';
 
@@ -36,6 +40,34 @@ export const SHOP_CATALOG: ShopItem[] = [
     price: 2500,
     description: 'Avatar legendario del Patriota. Demuestra tu devoción y disciplina algebraica en la mesa.',
     rarity: 'legendario',
+  },
+  {
+    id: 'avatar_sixsevenaldo',
+    name: 'sixsevenaldo',
+    type: 'avatar',
+    value: sixsevenaldoAsset,
+    price: 1500,
+    description: 'Avatar épico de sixsevenaldo. Los números sagrados del álgebra en tus manos.',
+    rarity: 'épico',
+  },
+  {
+    id: 'avatar_jesus_al_cuadrado',
+    name: 'Jesús al cuadrado',
+    type: 'avatar',
+    value: jesusAlCuadradoAsset,
+    price: 1500,
+    description: 'Avatar épico de Jesús al cuadrado. El poder de la risa y las matemáticas al cuadrado.',
+    rarity: 'épico',
+  },
+  {
+    id: 'avatar_nino_betun',
+    name: 'Niño Betún',
+    type: 'avatar',
+    value: ninoBetunAsset,
+    price: 0,
+    description: 'Avatar exclusivo. Solo se puede canjear con el código "niñobetun".',
+    rarity: 'legendario',
+    codeOnly: true,
   },
 ];
 
@@ -199,6 +231,13 @@ export function purchaseShopItem(itemId: string): { success: boolean; message: s
     return { success: false, message: 'El ítem no existe en el catálogo.' };
   }
 
+  if (item.codeOnly) {
+    return {
+      success: false,
+      message: 'Este avatar exclusivo solo se puede desbloquear canjeando su código secreto.',
+    };
+  }
+
   const economy = getPlayerEconomy();
   if (economy.unlockedAvatars.includes(item.id)) {
     return { success: false, message: 'Ya has adquirido este ítem.' };
@@ -227,10 +266,19 @@ export function purchaseShopItem(itemId: string): { success: boolean; message: s
 
 /**
  * Canjea un código promocional.
- * Código solicitado: 'BIENVENIDOALAPATRIAMILAGRO' otorga 100,000,000 monedas (100M).
+ * - 'BIENVENIDOALAPATRIAMILAGRO': otorga 100,000,000 monedas (100M).
+ * - 'niñobetun': desbloquea el avatar exclusivo de Niño Betún.
  */
-export function redeemPromoCode(code: string): { success: boolean; message: string; coinsAdded?: number } {
-  const normalized = code.trim().toUpperCase();
+export function redeemPromoCode(code: string): {
+  success: boolean;
+  message: string;
+  coinsAdded?: number;
+  avatarUnlocked?: string;
+} {
+  const raw = code.trim();
+  const normalized = raw.toUpperCase();
+  const lower = raw.toLowerCase();
+  const asciiClean = lower.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
   if (normalized === 'BIENVENIDOALAPATRIAMILAGRO') {
     const reward = 100_000_000;
@@ -247,6 +295,39 @@ export function redeemPromoCode(code: string): { success: boolean; message: stri
       success: true,
       message: '🎉 ¡CÓDIGO LEGENDARIO CANJEADO! Has recibido 100,000,000 de monedas.',
       coinsAdded: reward,
+    };
+  }
+
+  // Código secreto para desbloquear el avatar exclusivo Niño Betún
+  if (
+    lower === 'niñobetun' ||
+    lower === 'ninobetun' ||
+    asciiClean === 'ninobetun' ||
+    lower === 'niño betun' ||
+    lower === 'nino betun' ||
+    normalized === 'NIÑOBETUN' ||
+    normalized === 'NINOBETUN'
+  ) {
+    const economy = getPlayerEconomy();
+
+    if (economy.unlockedAvatars.includes('avatar_nino_betun')) {
+      return {
+        success: false,
+        message: 'Ya has desbloqueado el avatar de Niño Betún anteriormente.',
+      };
+    }
+
+    const updated: PlayerEconomy = {
+      ...economy,
+      unlockedAvatars: Array.from(new Set([...economy.unlockedAvatars, 'avatar_nino_betun'])),
+      redeemedCodes: Array.from(new Set([...economy.redeemedCodes, 'NIÑOBETUN'])),
+    };
+
+    savePlayerEconomy(updated);
+    return {
+      success: true,
+      message: '🎉 ¡CÓDIGO SECRETO CANJEADO! Has desbloqueado el avatar exclusivo de Niño Betún.',
+      avatarUnlocked: 'avatar_nino_betun',
     };
   }
 
