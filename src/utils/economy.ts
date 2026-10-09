@@ -14,6 +14,7 @@ export interface ShopItem {
   description: string;
   rarity: 'común' | 'raro' | 'épico' | 'legendario';
   codeOnly?: boolean;
+  hidden?: boolean; // Si es true, no aparece listado públicamente en el catálogo de la tienda
 }
 
 export interface PlayerEconomy {
@@ -65,9 +66,10 @@ export const SHOP_CATALOG: ShopItem[] = [
     type: 'avatar',
     value: ninoBetunAsset,
     price: 0,
-    description: 'Avatar exclusivo. Solo se puede canjear con el código "niñobetun".',
+    description: 'Avatar legendario secreto de Niño Betún.',
     rarity: 'legendario',
     codeOnly: true,
+    hidden: true,
   },
 ];
 

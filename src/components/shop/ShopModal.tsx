@@ -228,7 +228,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({
             </div>
 
             <div className="max-w-md mx-auto space-y-4">
-              {SHOP_CATALOG.map((item) => {
+              {SHOP_CATALOG.filter((item) => !item.hidden).map((item) => {
                 const isOwned = economy.unlockedAvatars.includes(item.id);
                 const isEquipped = currentAvatar === item.value;
                 const canAfford = economy.coins >= item.price;
@@ -367,7 +367,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({
                   type="text"
                   value={promoInput}
                   onChange={(e) => setPromoInput(e.target.value)}
-                  placeholder="Ingresa tu código (ej. niñobetun)"
+                  placeholder="Ingresa tu código"
                   className="flex-1 bg-black/60 border border-white/30 focus:border-amber-400 rounded-xl px-3 py-2 text-xs font-mono uppercase tracking-wider text-amber-300 placeholder:text-slate-400 placeholder:normal-case placeholder:font-sans focus:outline-none transition shadow-inner"
                 />
                 <button

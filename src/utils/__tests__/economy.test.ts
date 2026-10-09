@@ -122,7 +122,13 @@ describe('Sistema de Economía y Monedas (economy.ts)', () => {
       const ninoBetunItem = SHOP_CATALOG.find((i) => i.id === 'avatar_nino_betun');
       expect(ninoBetunItem).toBeDefined();
       expect(ninoBetunItem?.name).toBe('Niño Betún');
+      expect(ninoBetunItem?.rarity).toBe('legendario');
       expect(ninoBetunItem?.codeOnly).toBe(true);
+      expect(ninoBetunItem?.hidden).toBe(true);
+
+      // El catálogo público de la tienda solo muestra los 3 ítems visibles
+      const visibleCatalog = SHOP_CATALOG.filter((i) => !i.hidden);
+      expect(visibleCatalog).toHaveLength(3);
     });
 
     it('rechaza la compra si las monedas son insuficientes', () => {
