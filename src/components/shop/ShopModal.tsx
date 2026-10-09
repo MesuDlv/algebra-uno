@@ -132,22 +132,37 @@ export const ShopModal: React.FC<ShopModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md select-none overflow-y-auto">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md select-none overflow-y-auto"
+        onClick={onClose}
+      >
         <motion.div
           initial={{ scale: 0.92, opacity: 0, y: 15 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.92, opacity: 0, y: 15 }}
           transition={{ type: 'spring', damping: 24, stiffness: 280 }}
+          onClick={(e) => e.stopPropagation()}
           className="relative w-full max-w-xl bg-gradient-to-b from-slate-900 via-slate-950 to-black border-2 border-amber-400/50 rounded-3xl p-4 sm:p-6 shadow-[0_0_80px_rgba(245,158,11,0.25)] text-slate-100 max-h-[92vh] flex flex-col justify-between overflow-hidden"
         >
           {/* Fondo iluminado */}
           <div className="absolute -top-24 -right-24 w-60 h-60 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
 
+          {/* Botón Cerrar - Fijo y siempre visible en la esquina superior derecha */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 z-40 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-800 hover:bg-slate-700 active:bg-slate-600 border-2 border-white/40 text-white flex items-center justify-center transition-all active:scale-90 cursor-pointer shadow-2xl backdrop-blur-md"
+            title="Cerrar tienda"
+            aria-label="Cerrar"
+          >
+            <X className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+          </button>
+
           {/* Header de la Tienda */}
-          <div className="relative z-10 flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-white/10 pb-3 mb-4 pr-12 sm:pr-14 gap-2.5">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 p-0.5 shadow-lg flex items-center justify-center">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 p-0.5 shadow-lg flex items-center justify-center flex-shrink-0">
                 <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
                   <ShoppingBag className="w-5 h-5 text-amber-300" />
                 </div>
@@ -165,8 +180,8 @@ export const ShopModal: React.FC<ShopModalProps> = ({
               </div>
             </div>
 
-            {/* Contador de monedas y cerrar */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            {/* Contador de monedas */}
+            <div className="flex items-center self-start sm:self-auto">
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400/15 border border-amber-400/40 text-amber-300 font-black text-xs sm:text-sm shadow-md">
                 <Coins className="w-4 h-4 text-yellow-300 animate-pulse" />
                 <span>{economy.coins.toLocaleString()}</span>
@@ -174,14 +189,6 @@ export const ShopModal: React.FC<ShopModalProps> = ({
                   ({formatCoins(economy.coins)})
                 </span>
               </div>
-
-              <button
-                type="button"
-                onClick={onClose}
-                className="p-1.5 sm:p-2 rounded-full bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white transition active:scale-90"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
           </div>
 
@@ -301,7 +308,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({
             <div className="mt-4 pt-4 border-t border-white/10">
               <div className="text-xs font-black uppercase tracking-wider text-amber-300/80 flex items-center gap-1.5 mb-2">
                 <KeyRound className="w-3.5 h-3.5 text-yellow-300" />
-                Canjear Código Secreto / Promocional
+                Canjear Código
               </div>
 
               <form onSubmit={handleRedeem} className="flex gap-2">
@@ -309,8 +316,8 @@ export const ShopModal: React.FC<ShopModalProps> = ({
                   type="text"
                   value={promoInput}
                   onChange={(e) => setPromoInput(e.target.value)}
-                  placeholder="Ej: BIENVENIDOALAPATRIAMILAGRO"
-                  className="flex-1 bg-black/50 border border-white/20 focus:border-amber-400 rounded-xl px-3 py-2 text-xs font-mono uppercase tracking-wider text-yellow-300 placeholder:text-white/30 focus:outline-none transition"
+                  placeholder="Ingresa tu código"
+                  className="flex-1 bg-black/60 border border-white/30 focus:border-amber-400 rounded-xl px-3 py-2 text-xs font-mono uppercase tracking-wider text-amber-300 placeholder:text-slate-400 placeholder:normal-case placeholder:font-sans focus:outline-none transition shadow-inner"
                 />
                 <button
                   type="submit"
