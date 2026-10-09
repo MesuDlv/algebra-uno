@@ -15,6 +15,8 @@ import { Card as CardType, CardColor } from '../types/card';
 import { soundEffects } from '../utils/audio';
 import { triggerHaptic } from '../utils/haptics';
 import { LogOut, BookOpen, Clock, Volume2, VolumeX, Eye } from 'lucide-react';
+import { ShopModal } from '../components/shop/ShopModal';
+import { AvatarDisplay } from '../components/common/AvatarDisplay';
 
 interface GamePageProps {
   roomId: string;
@@ -53,6 +55,8 @@ export const GamePage: React.FC<GamePageProps> = ({
   const [penaltyCount, setPenaltyCount] = useState<number | null>(null);
   const [gameToast, setGameToast] = useState<string | null>(null);
   const [showExitModal, setShowExitModal] = useState<boolean>(false);
+  const [showShop, setShowShop] = useState<boolean>(false);
+  const prevActionCounterRef = useRef<number>(0);
   const [disconnectCountdown, setDisconnectCountdown] = useState<{
     uid: string;
     name: string;
@@ -160,8 +164,10 @@ export const GamePage: React.FC<GamePageProps> = ({
     }
 
     const action = gameState.lastAction;
-    if (action === prevActionRef.current) return;
+    const currentCounter = gameState.actionCounter ?? 0;
+    if (action === prevActionRef.current && currentCounter === prevActionCounterRef.current) return;
     prevActionRef.current = action;
+    prevActionCounterRef.current = currentCounter;
 
     // 1. Cambio de Color (Comodín o Comodín +4)
     const isColorAction =
@@ -190,21 +196,35 @@ export const GamePage: React.FC<GamePageProps> = ({
       return;
     }
 
-    // 2. Bloqueo (Skip) - SOLO para el usuario bloqueado
-    if (action.includes('ha sido bloqueado')) {
-      if (myPlayer && action.includes(`¡${myPlayer.name} ha sido bloqueado!`)) {
-        const playerMatch = action.match(/^(.+?)\s+jugó/);
-        const playerName = playerMatch ? playerMatch[1].trim() : undefined;
+    // 2. Bloqueo (Skip) - EXCLUSIVO y GARANTIZADO para el usuario bloqueado
+    const isVictimOfBlock =
+      Boolean(gameState.blockedPlayerUid && gameState.blockedPlayerUid === currentUserUid) ||
+      Boolean(myPlayer && action.includes(`¡${myPlayer.name} ha sido bloqueado!`));
 
-        setAnnouncement({
-          id: `block-${Date.now()}-${myPlayer.uid}`,
-          type: 'block',
-          victimName: myPlayer.name,
-          playerName,
-        });
-        triggerHaptic('heavy');
-        return;
-      }
+    if (isVictimOfBlock) {
+      const playerMatch = action.match(/^(.+?)\s+jugó/);
+      const playerName = playerMatch ? playerMatch[1].trim() : undefined;
+
+      setAnnouncement({
+        id: `block-${gameState.actionCounter || Date.now()}-${currentUserUid}`,
+        type: 'block',
+        victimName: myPlayer?.name || 'Tú',
+        playerName,
+      });
+      triggerHaptic('heavy');
+      return;
+    }
+
+    // Detección de penalización por error en Modo Sin Ayuda
+    if (
+      action.includes('Come 2 cartas y pierde su turno') &&
+      myPlayer &&
+      action.includes(myPlayer.name)
+    ) {
+      setPenaltyCount(2);
+      soundEffects.invalidCard();
+      triggerHaptic('heavy');
+      return;
     }
 
     // 3. Cambio de Sentido (Reversa)
@@ -756,14 +776,15 @@ export const GamePage: React.FC<GamePageProps> = ({
           onCallUno={handleCallUno}
           onDrawCard={handleDrawCard}
           onZoomCard={(card) => setZoomedCard(card)}
+          helpMode={gameState.helpMode}
         />
       </div>
 
       {/* Placa de jugador local en modo horizontal y PC */}
       <div className="hidden landscape:flex absolute bottom-2.5 sm:bottom-3 lg:bottom-5 left-3 sm:left-4 lg:left-8 xl:left-12 z-30 items-center gap-2.5 sm:gap-3 pointer-events-none">
         <div className="relative">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 lg:w-13 lg:h-13 xl:w-14 xl:h-14 rounded-full bg-slate-900 border-2 border-amber-400 flex items-center justify-center text-lg sm:text-xl lg:text-2xl shadow-xl ring-2 ring-amber-400/30">
-            {myPlayer?.avatar || '👤'}
+          <div className="w-9 h-9 sm:w-10 sm:h-10 lg:w-13 lg:h-13 xl:w-14 xl:h-14 rounded-full bg-slate-900 border-2 border-amber-400 p-0.5 flex items-center justify-center shadow-xl ring-2 ring-amber-400/30 overflow-hidden">
+            <AvatarDisplay avatar={myPlayer?.avatar} className="w-full h-full rounded-full object-cover" />
           </div>
           <div className="absolute -bottom-1 -right-1 px-1.5 py-0.2 lg:px-2 lg:py-0.5 rounded-full bg-emerald-600 border border-emerald-300 text-white font-black text-[9px] sm:text-[10px] lg:text-xs shadow">
             {myPlayer?.hand.length || 0}
@@ -795,6 +816,7 @@ export const GamePage: React.FC<GamePageProps> = ({
           canPass={Boolean(gameState.drawnCardThisTurn)}
           isSpectator={isSpectator}
           showCards={!showStartAnimation}
+          helpMode={gameState.helpMode}
           onDragStateChange={(dragging) => setIsDraggingCard(dragging)}
           onPlayCard={handlePlayNormalCard}
           onPlayWild={handlePlayWildCard}
@@ -823,6 +845,9 @@ export const GamePage: React.FC<GamePageProps> = ({
         winnerAvatar={winnerPlayer?.avatar || '🏆'}
         isCurrentUserWinner={gameState.winnerUid === currentUserUid}
         isHost={isHost}
+        players={gameState.players}
+        winnerUid={gameState.winnerUid}
+        currentUserUid={currentUserUid}
         subtitle={
           gameState.lastAction?.includes('ha abandonado')
             ? `¡Victoria automática! El rival ha abandonado la partida.`
@@ -830,6 +855,13 @@ export const GamePage: React.FC<GamePageProps> = ({
         }
         onRequestRematch={requestRematch}
         onExit={handleExit}
+        onOpenShop={() => setShowShop(true)}
+      />
+
+      {/* Modal de Tienda de Monedas y Recompensas */}
+      <ShopModal
+        isOpen={showShop}
+        onClose={() => setShowShop(false)}
       />
 
       {/* Modal de Confirmación para Salir (Previene bloqueos y gestos accidentales en móviles) */}

@@ -31,4 +31,6 @@ export interface GameState {
   helpMode: boolean;
   lastAction: string | null;
   unoVulnerableUids: string[];     // Jugadores con 1 carta que aún no cantaron UNO
+  blockedPlayerUid?: string | null; // UID del jugador que fue bloqueado en la última acción
+  actionCounter: number;           // Contador incremental para garantizar detección de eventos repetidos
 }

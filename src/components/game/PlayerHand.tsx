@@ -18,6 +18,7 @@ interface PlayerHandProps {
   canPass?: boolean;
   isSpectator?: boolean;
   showCards?: boolean;
+  helpMode?: boolean;
   onDragStateChange?: (isDragging: boolean) => void;
   onPlayCard: (cardId: string) => void;
   onPlayWild: (card: CardType) => void;
@@ -45,6 +46,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
   drawnCardThisTurn,
   isSpectator = false,
   showCards = true,
+  helpMode = true,
   onDragStateChange,
   onPlayCard,
   onPlayWild,
@@ -333,7 +335,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
       if (!topDiscardCard) return;
 
       const playable = isCardPlayable(card, topDiscardCard, activeColor, accumulatedDrawCount);
-      if (!playable) {
+      if (!playable && helpMode) {
         soundEffects.invalidCard();
         setShakingCardId(card.id);
         setTimeout(() => setShakingCardId(null), 400);
@@ -347,10 +349,10 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
         return;
       }
 
-      // Carta válida: Lanzar inmediatamente con un solo clic, sin doble confirmación
+      // En Modo Sin Ayuda (o si es válida en modo ayuda): Lanzar inmediatamente la carta
       launchCard(card);
     },
-    [isSpectator, isMyTurn, topDiscardCard, activeColor, accumulatedDrawCount, launchCard]
+    [isSpectator, isMyTurn, topDiscardCard, activeColor, accumulatedDrawCount, helpMode, launchCard]
   );
 
   const handleFlightComplete = () => {
@@ -510,13 +512,13 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
 
                     const isCurrentPlayable = isCardPlayable(card, topDiscardCard, activeColor, accumulatedDrawCount);
 
-                    if (isCurrentPlayable) {
-                      // Si se arrastró hacia arriba (lanzamiento directo e inmediato, 1 solo gesto)
-                      if (info.offset.y < -35 || info.velocity.y < -60) {
+                    if (isCurrentPlayable || !helpMode) {
+                      // Si se arrastró hacia arriba (lanzamiento directo e inmediato)
+                      if (info.offset.y < -30 || info.velocity.y < -50) {
                         launchCard(card);
                       }
                     } else {
-                      // Carta NO jugable: si intentó arrastrarla hacia arriba, vibra y regresa a la mano
+                      // Carta NO jugable en Modo Ayuda: si intentó arrastrarla hacia arriba, vibra y regresa a la mano
                       if (info.offset.y < -25 || info.velocity.y < -50) {
                         soundEffects.invalidCard();
                         setShakingCardId(card.id);
@@ -532,12 +534,9 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                     }
                   }}
                   whileDrag={{
-                    scale: 1.12,
+                    scale: 1.1,
                     zIndex: 90,
                     cursor: 'grabbing',
-                    filter: playable
-                      ? 'drop-shadow(0 0 28px rgba(250,204,21,1)) brightness(1.15)'
-                      : 'drop-shadow(0 0 18px rgba(244,63,94,0.85))',
                   }}
                   initial={{ y: 50, opacity: 0, scale: 0.8 }}
                   animate={{
@@ -560,7 +559,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                     mass: 0.8,
                   }}
                   whileHover={
-                    playable
+                    playable && helpMode
                       ? { y: -16, scale: 1.06, zIndex: 40 }
                       : { y: -5, zIndex: 30 }
                   }
@@ -569,19 +568,19 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                     displayedHand.length
                   )} ${
                     isDraggingThis
-                      ? 'z-50'
-                      : isHighlightedThis
-                      ? 'filter drop-shadow-[0_0_24px_rgba(250,204,21,1)] z-40'
-                      : playable
-                      ? 'filter drop-shadow-[0_0_14px_rgba(251,191,36,0.85)] z-20'
-                      : 'opacity-85 hover:opacity-100 z-10'
+                      ? 'z-50 shadow-2xl'
+                      : isHighlightedThis && helpMode
+                      ? 'shadow-[0_0_24px_rgba(250,204,21,0.9)] z-40'
+                      : playable && helpMode
+                      ? 'shadow-[0_0_14px_rgba(251,191,36,0.8)] z-20'
+                      : 'opacity-90 hover:opacity-100 z-10'
                   }`}
                   onClick={() => handleCardAttempt(card)}
                 >
                   <Card
                     card={card}
                     size="hand"
-                    isPlayable={playable}
+                    isPlayable={helpMode ? playable : false}
                     onClick={() => handleCardAttempt(card)}
                   />
 
@@ -594,8 +593,8 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                     </div>
                   )}
 
-                  {/* Badge animado si es la carta jugable recién comida */}
-                  {isHighlightedThis && (
+                  {/* Badge animado si es la carta jugable recién comida (Solo en Modo Ayuda) */}
+                  {isHighlightedThis && helpMode && (
                     <div className="absolute -top-6.5 md:-top-8 inset-x-0 text-center pointer-events-none animate-bounce z-40">
                       <span className="px-2 py-0.5 rounded-full text-[8px] md:text-[10px] font-black bg-amber-400 text-slate-950 uppercase shadow-lg tracking-wider border border-white">
                         ✨ ¡Tu jugada!
@@ -603,8 +602,8 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                     </div>
                   )}
 
-                  {/* Botón discreto en esquina inferior izquierda para inspeccionar ecuación sin tapar fórmula */}
-                  {onZoomCard && (
+                  {/* Botón discreto en esquina inferior izquierda para inspeccionar ecuación (SOLO EN MODO AYUDA) */}
+                  {onZoomCard && helpMode && (
                     <button
                       type="button"
                       onClick={(e) => {

@@ -7,7 +7,10 @@ import {
   PlayerProfile,
 } from '../firebase/auth';
 import { createRoom, joinRoom, addBotToRoom } from '../firebase/roomService';
-import { Sparkles, Users, BookOpen, ArrowRight, PlusCircle, Check, Eye, Bot } from 'lucide-react';
+import { Sparkles, Users, BookOpen, ArrowRight, PlusCircle, Check, Eye, Bot, Coins, ShoppingBag } from 'lucide-react';
+import { getPlayerEconomy, SHOP_CATALOG, PlayerEconomy } from '../utils/economy';
+import { AvatarDisplay } from '../components/common/AvatarDisplay';
+import { ShopModal } from '../components/shop/ShopModal';
 
 interface LobbyPageProps {
   onJoinRoom: (roomId: string) => void;
@@ -25,6 +28,8 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [economy, setEconomy] = useState<PlayerEconomy>(() => getPlayerEconomy());
+  const [showShop, setShowShop] = useState(false);
 
   // Leer si vino con ?room=XXXXX en la URL
   useEffect(() => {
@@ -135,6 +140,23 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
             UNO
           </span>
         </h1>
+
+        {/* Barra de Monedas y Botón de Tienda */}
+        <div className="flex items-center gap-2 mt-3">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/50 border border-amber-400/30 text-amber-300 font-black text-xs shadow-md">
+            <Coins className="w-4 h-4 text-yellow-300 animate-pulse" />
+            <span>{economy.coins.toLocaleString()}</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowShop(true)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-md transition active:scale-95 cursor-pointer"
+          >
+            <ShoppingBag className="w-3.5 h-3.5" />
+            <span>Tienda</span>
+          </button>
+        </div>
       </div>
 
       {/* Contenedor Principal */}
@@ -174,34 +196,37 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
           </label>
 
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-2xl shadow-inner">
-              {profile.avatar}
+            <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 p-0.5 flex items-center justify-center shadow-inner overflow-hidden">
+              <AvatarDisplay avatar={profile.avatar} className="w-full h-full rounded-2xl object-cover" fallbackClassName="text-2xl" />
             </div>
             <input
               type="text"
               value={nameInput}
               onChange={(e) => handleNameChange(e.target.value)}
               onBlur={handleNameBlur}
-              placeholder="Tu nombre o apodo (Ej: Messi)"
+              placeholder="Tu nombre o apodo (Ej: Gauss)"
               maxLength={15}
               className="flex-1 bg-black/40 border border-white/20 rounded-xl px-3 py-2.5 text-sm font-semibold text-white placeholder:text-white/40 focus:outline-none focus:border-amber-400 transition"
             />
           </div>
 
-          {/* Selección rápida de avatar */}
-          <div className="flex items-center justify-between gap-1 overflow-x-auto no-scrollbar pt-1">
-            {AVAILABLE_AVATARS.map((av) => (
+          {/* Selección de avatar: Avatares estándar + Desbloqueados de la tienda */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1">
+            {[
+              ...AVAILABLE_AVATARS,
+              ...SHOP_CATALOG.filter((i) => economy.unlockedAvatars.includes(i.id)).map((i) => i.value),
+            ].map((av) => (
               <button
                 key={av}
                 type="button"
                 onClick={() => handleAvatarSelect(av)}
-                className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg transition-all cursor-pointer ${
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer overflow-hidden flex-shrink-0 ${
                   profile.avatar === av
                     ? 'bg-amber-400/30 border-2 border-amber-300 scale-110 shadow-lg'
                     : 'bg-black/30 hover:bg-white/10 border border-white/15'
                 }`}
               >
-                {av}
+                <AvatarDisplay avatar={av} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-base" />
               </button>
             ))}
           </div>
@@ -361,6 +386,20 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
           Explorar Galería de las 108 Cartas Algebraicas
         </button>
       </div>
+
+      {/* Modal de Tienda */}
+      <ShopModal
+        isOpen={showShop}
+        onClose={() => {
+          setShowShop(false);
+          setEconomy(getPlayerEconomy());
+          setProfile(getPlayerProfile());
+        }}
+        onProfileUpdated={() => {
+          setProfile(getPlayerProfile());
+          setEconomy(getPlayerEconomy());
+        }}
+      />
 
       {/* Pie de página */}
       <div className="w-full text-center text-[11px] text-amber-200/70 mt-6">

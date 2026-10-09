@@ -18,6 +18,7 @@ interface TableCenterProps {
   onCallUno?: () => void;
   onDrawCard: () => void;
   onZoomCard?: (card: CardType) => void;
+  helpMode?: boolean;
 }
 
 const COLOR_NAMES: Record<CardColor, { name: string; variable: string; bg: string; border: string }> = {
@@ -41,6 +42,7 @@ export const TableCenter: React.FC<TableCenterProps> = React.memo(({
   onCallUno,
   onDrawCard,
   onZoomCard,
+  helpMode = true,
 }) => {
   const activeColorInfo = COLOR_NAMES[activeColor] || COLOR_NAMES.green;
 
@@ -220,8 +222,8 @@ export const TableCenter: React.FC<TableCenterProps> = React.memo(({
                     <Card card={renderedDiscardCard} size="table" />
                   </motion.div>
 
-                  {/* Botón para ver explicación / zoom de la ecuación */}
-                  {onZoomCard && (
+                  {/* Botón para ver explicación / zoom de la ecuación (Solo en Modo Ayuda) */}
+                  {onZoomCard && helpMode && (
                     <button
                       onClick={() => onZoomCard(renderedDiscardCard)}
                       className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 md:-top-2.5 md:-right-2.5 p-1 sm:p-1.5 md:p-2 rounded-full bg-slate-900/90 text-amber-300 hover:text-white border border-slate-700 shadow-lg backdrop-blur-sm z-20 transition active:scale-95"

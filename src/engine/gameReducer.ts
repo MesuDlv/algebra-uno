@@ -23,6 +23,8 @@ export function createInitialState(): GameState {
     helpMode: false,
     lastAction: null,
     unoVulnerableUids: [],
+    blockedPlayerUid: null,
+    actionCounter: 0,
   };
 }
 
@@ -163,6 +165,8 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
         helpMode: !!payload.helpMode,
         lastAction: `Partida iniciada. Carta inicial: ${openingCard.variable}`,
         unoVulnerableUids: [],
+        blockedPlayerUid: null,
+        actionCounter: 0,
       };
     }
 
@@ -186,7 +190,38 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
 
       const topCard = state.discardPile[state.discardPile.length - 1];
       if (!isCardPlayable(cardToPlay, topCard, state.activeColor, state.accumulatedDrawCount)) {
-        return state; // Jugada ilegal (ej. tirar número o bloqueo cuando hay penalización acumulada)
+        // En Modo Sin Ayuda: Si lanza una carta errónea (ej. creyendo que coincide),
+        // recibe una penalización de 2 cartas y se le skipea el turno.
+        if (!state.helpMode) {
+          const penaltyDraw = drawCardsDeterministically(state, 2);
+          const nextPlayers = state.players.map((p, idx) => {
+            if (idx === playerIndex) {
+              return {
+                ...p,
+                hand: [...p.hand, ...penaltyDraw.drawn],
+                hasCalledUno: false,
+              };
+            }
+            return p;
+          });
+
+          const nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, state.direction, 1);
+          const nextActionCounter = (state.actionCounter || 0) + 1;
+
+          return {
+            ...state,
+            players: nextPlayers,
+            deck: penaltyDraw.nextDeck,
+            discardPile: penaltyDraw.nextDiscard,
+            reshuffleCount: penaltyDraw.nextReshuffleCount,
+            currentTurnIndex: nextTurnIndex,
+            drawnCardThisTurn: null,
+            lastAction: `¡${player.name} cometió un error de cálculo con ${cardToPlay.variable}! Come 2 cartas y pierde su turno.`,
+            blockedPlayerUid: null,
+            actionCounter: nextActionCounter,
+          };
+        }
+        return state; // Jugada ilegal bloqueada en Modo Ayuda
       }
 
       // Remover la carta de la mano del jugador
@@ -227,6 +262,8 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
           accumulatedDrawCount: 0,
           drawnCardThisTurn: null,
           lastAction: `¡${player.name} se quedó sin cartas y ha ganado la partida!`,
+          blockedPlayerUid: null,
+          actionCounter: (state.actionCounter || 0) + 1,
         };
       }
 
@@ -239,15 +276,20 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
       let nextAccumulatedDrawCount = state.accumulatedDrawCount;
       let nextDeck = [...state.deck];
       let nextReshuffleCount = state.reshuffleCount;
+      let blockedVictimUid: string | null = null;
 
       if (cardToPlay.type === 'number') {
         nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1);
       } else if (cardToPlay.type === 'skip') {
-        // Salta al siguiente jugador
+        // Salta al siguiente jugador y marca su UID para notificación exclusiva
+        const victimIndex = getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1);
+        blockedVictimUid = state.players[victimIndex]?.uid || null;
         nextTurnIndex = getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 2);
       } else if (cardToPlay.type === 'reverse') {
         if (state.players.length === 2) {
           // En 2 jugadores actúa como bloqueo: vuelve a jugar el mismo jugador
+          const victimIndex = getNextPlayerIndex(playerIndex, state.players.length, nextDirection, 1);
+          blockedVictimUid = state.players[victimIndex]?.uid || null;
           nextTurnIndex = playerIndex;
         } else {
           nextDirection = (nextDirection * -1) as 1 | -1;
@@ -380,6 +422,8 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
         reshuffleCount: nextReshuffleCount,
         unoVulnerableUids,
         lastAction: lastActionMsg,
+        blockedPlayerUid: blockedVictimUid,
+        actionCounter: (state.actionCounter || 0) + 1,
       };
     }
 
@@ -456,6 +500,8 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
         currentTurnIndex: nextTurnIndex,
         accumulatedDrawCount: nextAccumulatedDrawCount,
         lastAction: lastActionMsg,
+        blockedPlayerUid: null,
+        actionCounter: (state.actionCounter || 0) + 1,
       };
     }
 
@@ -491,6 +537,8 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
           currentTurnIndex: nextTurnIndex,
           drawnCardThisTurn: null,
           lastAction: `${player.name} no se defendió y robó ${countToDraw} cartas acumuladas`,
+          blockedPlayerUid: null,
+          actionCounter: (state.actionCounter || 0) + 1,
         };
       }
 
@@ -552,6 +600,8 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
             drawnCards.length === 1
               ? `${player.name} robó 1 carta jugable`
               : `${player.name} comió ${drawnCards.length} cartas hasta que pudo lanzar`,
+          blockedPlayerUid: null,
+          actionCounter: (state.actionCounter || 0) + 1,
         };
       }
 
@@ -566,6 +616,8 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
         currentTurnIndex: nextTurnIndex,
         drawnCardThisTurn: null,
         lastAction: `${player.name} comió ${drawnCards.length} cartas sin coincidencia y pasó turno`,
+        blockedPlayerUid: null,
+        actionCounter: (state.actionCounter || 0) + 1,
       };
     }
 
@@ -581,6 +633,8 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
         currentTurnIndex: nextTurnIndex,
         drawnCardThisTurn: null,
         lastAction: `${state.players[state.currentTurnIndex].name} decidió no jugar la carta robada`,
+        blockedPlayerUid: null,
+        actionCounter: (state.actionCounter || 0) + 1,
       };
     }
 
@@ -641,6 +695,8 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
         reshuffleCount: drawResult.nextReshuffleCount,
         unoVulnerableUids,
         lastAction: `¡${targetPlayer.name} fue atrapado sin cantar UNO! Roba 2 cartas de penalización`,
+        blockedPlayerUid: null,
+        actionCounter: (state.actionCounter || 0) + 1,
       };
     }
 
@@ -671,6 +727,8 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
           currentTurnIndex: nextTurnIndex,
           drawnCardThisTurn: null,
           lastAction: `${player.name} tardó demasiado y robó ${countToDraw} cartas acumuladas`,
+          blockedPlayerUid: null,
+          actionCounter: (state.actionCounter || 0) + 1,
         };
       }
 
@@ -680,6 +738,8 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
         currentTurnIndex: nextTurnIndex,
         drawnCardThisTurn: null,
         lastAction: `Turno de ${player.name} saltado por inactividad`,
+        blockedPlayerUid: null,
+        actionCounter: (state.actionCounter || 0) + 1,
       };
     }
 

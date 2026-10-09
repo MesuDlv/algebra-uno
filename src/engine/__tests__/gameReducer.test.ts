@@ -1028,4 +1028,141 @@ describe('Motor de Reglas Determinista de ALGEBRA UNO (gameReducer)', () => {
       expect(state.players.map((p) => p.uid)).toEqual(['u1', 'u2']);
     });
   });
+
+  describe('Modo Sin Ayuda (Hard Mode) y Detección de Bloqueo Exclusivo', () => {
+    it('penaliza con 2 cartas y salta el turno si se lanza una carta inválida en Modo Sin Ayuda', () => {
+      let state = gameReducer(createInitialState(), {
+        seq: 1,
+        uid: 'u1',
+        type: 'start',
+        payload: {
+          seed: 42,
+          players: [
+            { uid: 'u1', name: 'Ana', avatar: '📐' },
+            { uid: 'u2', name: 'Beto', avatar: '⚡' },
+          ],
+          helpMode: false,
+        },
+      });
+
+      expect(state.helpMode).toBe(false);
+
+      // Creamos una carta en mesa fija: Rojo 3
+      const topCard: Card = {
+        id: 'red_3_table',
+        color: 'red',
+        variable: 'Z',
+        type: 'number',
+        value: 3,
+        expressionLatex: 'Z=3',
+        displayCornerLatex: '3',
+        explanationLatex: 'Z=3',
+      };
+
+      // Carta inválida: Verde 5
+      const invalidCard: Card = {
+        id: 'green_5_illegal',
+        color: 'green',
+        variable: 'Y',
+        type: 'number',
+        value: 5,
+        expressionLatex: 'Y=5',
+        displayCornerLatex: '5',
+        explanationLatex: 'Y=5',
+      };
+
+      state = {
+        ...state,
+        discardPile: [topCard],
+        activeColor: 'red',
+        currentTurnIndex: 0,
+        players: [
+          { ...state.players[0], hand: [invalidCard] },
+          { ...state.players[1], hand: [] },
+        ],
+      };
+
+      // Turno de u1 intentando jugar Verde 5 sobre Rojo 3
+      const nextState = gameReducer(state, {
+        seq: 2,
+        uid: 'u1',
+        type: 'play',
+        payload: { cardId: invalidCard.id },
+      });
+
+      // Debe haber robado 2 cartas deterministas de penalización: mano original (1) + 2 = 3 cartas
+      expect(nextState.players[0].hand).toHaveLength(3);
+      // La carta errónea permanece en su mano (no se descartó)
+      expect(nextState.players[0].hand.some((c) => c.id === invalidCard.id)).toBe(true);
+      // La carta en mesa sigue siendo la misma
+      expect(nextState.discardPile[nextState.discardPile.length - 1].id).toBe(topCard.id);
+      // El turno fue saltado al siguiente jugador (Beto, index 1)
+      expect(nextState.currentTurnIndex).toBe(1);
+      // lastAction describe la penalización
+      expect(nextState.lastAction).toContain('error de cálculo');
+      expect(nextState.lastAction).toContain('Come 2 cartas y pierde su turno');
+      expect(nextState.actionCounter).toBeGreaterThan(0);
+    });
+
+    it('asigna blockedPlayerUid cuando se lanza una carta de Bloqueo', () => {
+      let state = gameReducer(createInitialState(), {
+        seq: 1,
+        uid: 'u1',
+        type: 'start',
+        payload: {
+          seed: 42,
+          players: [
+            { uid: 'u1', name: 'Ana', avatar: '📐' },
+            { uid: 'u2', name: 'Beto', avatar: '⚡' },
+            { uid: 'u3', name: 'Carlos', avatar: '🧠' },
+          ],
+        },
+      });
+
+      const skipCard: Card = {
+        id: 'red_skip',
+        color: 'red',
+        variable: 'Z',
+        type: 'skip',
+        value: undefined,
+        expressionLatex: 'Z=0',
+        displayCornerLatex: '🚫',
+        explanationLatex: 'Z=0',
+      };
+
+      state = {
+        ...state,
+        status: 'playing',
+        discardPile: [{
+          id: 'red_1',
+          color: 'red',
+          variable: 'Z',
+          type: 'number',
+          value: 1,
+          expressionLatex: 'Z=1',
+          displayCornerLatex: '1',
+          explanationLatex: 'Z=1',
+        }],
+        activeColor: 'red',
+        currentTurnIndex: 0,
+        players: [
+          { ...state.players[0], hand: [skipCard, { ...skipCard, id: 'extra_card' }] },
+          { ...state.players[1] },
+          { ...state.players[2] },
+        ],
+      };
+
+      // Ana (index 0) juega Skip -> El bloqueado debe ser Beto (index 1)
+      const nextState = gameReducer(state, {
+        seq: 2,
+        uid: 'u1',
+        type: 'play',
+        payload: { cardId: skipCard.id },
+      });
+
+      expect(nextState.blockedPlayerUid).toBe('u2');
+      expect(nextState.currentTurnIndex).toBe(2); // Turno saltó a Carlos (index 2)
+      expect(nextState.lastAction).toContain('¡Beto ha sido bloqueado!');
+    });
+  });
 });
