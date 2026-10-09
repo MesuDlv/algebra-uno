@@ -203,6 +203,9 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
       soundEffects.drawCard();
       triggerHaptic('light');
 
+      // En modo sin ayuda, no revelamos visualmente ni con sonido si la carta robada es jugable
+      const isPlayableVisual = helpMode && isPlayable;
+
       // 1. La carta se eleva y se muestra arriba del mazo de robo
       setDrawingCard({
         card,
@@ -213,17 +216,17 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
         targetX,
         targetY,
         phase: 'aboveDeck',
-        isPlayable,
+        isPlayable: isPlayableVisual,
       });
 
-      if (isPlayable) {
+      if (isPlayableVisual) {
         soundEffects.yourTurn();
         triggerHaptic('medium');
       }
 
-      // Si es jugable, se queda más tiempo iluminada arriba del mazo para apreciarla (750ms).
-      // Si no es jugable, pausa 480ms y continúa su animación de arrastre hacia la mano.
-      const pauseDuration = isPlayable ? 750 : 480;
+      // Si es jugable en modo ayuda, se queda más tiempo iluminada arriba del mazo para apreciarla (750ms).
+      // Si no es jugable o estamos en modo sin ayuda, pausa 480ms y continúa su animación hacia la mano.
+      const pauseDuration = isPlayableVisual ? 750 : 480;
 
       setTimeout(() => {
         if (cancelled) return;
@@ -243,7 +246,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
           });
           setDrawingCard(null);
 
-          if (isPlayable) {
+          if (isPlayableVisual) {
             setHighlightedCardId(card.id);
             setHintMsg(`✨ ¡Robaste carta jugable! Lánzala para continuar.`);
             setTimeout(() => setHintMsg(null), 3500);
@@ -542,13 +545,13 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                   animate={{
                     y: isDraggingThis
                       ? -35
-                      : isHighlightedThis
+                      : isHighlightedThis && helpMode
                       ? -20
-                      : playable
+                      : playable && helpMode
                       ? -8
                       : 0,
                     x: isShakingThis ? [-6, 6, -5, 5, 0] : 0,
-                    scale: isHighlightedThis ? 1.08 : 1,
+                    scale: isHighlightedThis && helpMode ? 1.08 : 1,
                     opacity: 1,
                   }}
                   transition={{
@@ -559,7 +562,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                     mass: 0.8,
                   }}
                   whileHover={
-                    playable && helpMode
+                    helpMode && playable
                       ? { y: -16, scale: 1.06, zIndex: 40 }
                       : { y: -5, zIndex: 30 }
                   }
