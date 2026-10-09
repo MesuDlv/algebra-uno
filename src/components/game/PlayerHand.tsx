@@ -194,9 +194,8 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
         !isPenaltyDraw &&
         isLast &&
         isMyTurn &&
-        (drawnCardThisTurn
-          ? card.id === drawnCardThisTurn.id
-          : topDiscardCard && isCardPlayable(card, topDiscardCard, activeColor, 0))
+        topDiscardCard &&
+        isCardPlayable(card, topDiscardCard, activeColor, 0)
       );
 
       // Sonido y háptico de robo

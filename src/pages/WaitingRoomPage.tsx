@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RoomData, PresenceInfo } from '../types/room';
 import { toggleSpectatorStatus, updateMemberProfileInRoom } from '../firebase/roomService';
@@ -21,6 +21,8 @@ import {
   Trash2,
   Coins,
   ShoppingBag,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { AvatarDisplay } from '../components/common/AvatarDisplay';
 import { getPlayerEconomy, SHOP_CATALOG, PlayerEconomy } from '../utils/economy';
@@ -57,6 +59,16 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
   const [actionError, setActionError] = useState<string | null>(null);
   const [economy, setEconomy] = useState<PlayerEconomy>(() => getPlayerEconomy());
   const [showShop, setShowShop] = useState(false);
+  const avatarScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollAvatars = (direction: 'left' | 'right') => {
+    if (avatarScrollRef.current) {
+      avatarScrollRef.current.scrollBy({
+        left: direction === 'left' ? -140 : 140,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   const shareableUrl = `${window.location.origin}${window.location.pathname}?room=${room.id}`;
 
@@ -495,25 +507,55 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
                 />
               </div>
 
-              {/* Selección de avatar: Estándar + Desbloqueados de la tienda */}
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1 pb-1">
-                {[
-                  ...AVAILABLE_AVATARS,
-                  ...SHOP_CATALOG.filter((i) => economy.unlockedAvatars.includes(i.id)).map((i) => i.value),
-                ].map((av) => (
-                  <button
-                    key={av}
-                    type="button"
-                    onClick={() => setAvatarInput(av)}
-                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center transition-all cursor-pointer overflow-hidden flex-shrink-0 ${
-                      avatarInput === av
-                        ? 'bg-amber-400/30 border-2 border-amber-300 scale-110 shadow-lg'
-                        : 'bg-black/30 hover:bg-white/10 border border-white/15'
-                    }`}
-                  >
-                    <AvatarDisplay avatar={av} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-xl" />
-                  </button>
-                ))}
+              {/* Selección de avatar: Estándar + Desbloqueados de la tienda con controles para PC */}
+              <div className="relative flex items-center gap-1.5 w-full">
+                <button
+                  type="button"
+                  onClick={() => scrollAvatars('left')}
+                  className="w-7 h-7 rounded-full bg-black/50 hover:bg-black/80 border border-white/20 text-white/80 hover:text-white flex items-center justify-center transition cursor-pointer flex-shrink-0 active:scale-95 shadow-md"
+                  title="Desplazar avatares a la izquierda"
+                  aria-label="Anterior avatar"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                <div
+                  ref={avatarScrollRef}
+                  onWheel={(e) => {
+                    if (e.deltaY !== 0) {
+                      e.currentTarget.scrollLeft += e.deltaY;
+                    }
+                  }}
+                  className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar py-1 px-1 scroll-smooth cursor-grab active:cursor-grabbing select-none"
+                >
+                  {[
+                    ...AVAILABLE_AVATARS,
+                    ...SHOP_CATALOG.filter((i) => economy.unlockedAvatars.includes(i.id)).map((i) => i.value),
+                  ].map((av) => (
+                    <button
+                      key={av}
+                      type="button"
+                      onClick={() => setAvatarInput(av)}
+                      className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center transition-all cursor-pointer overflow-hidden flex-shrink-0 ${
+                        avatarInput === av
+                          ? 'bg-amber-400/30 border-2 border-amber-300 scale-110 shadow-lg'
+                          : 'bg-black/30 hover:bg-white/10 border border-white/15'
+                      }`}
+                    >
+                      <AvatarDisplay avatar={av} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-xl" />
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => scrollAvatars('right')}
+                  className="w-7 h-7 rounded-full bg-black/50 hover:bg-black/80 border border-white/20 text-white/80 hover:text-white flex items-center justify-center transition cursor-pointer flex-shrink-0 active:scale-95 shadow-md"
+                  title="Desplazar avatares a la derecha"
+                  aria-label="Siguiente avatar"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
 
               <div className="flex gap-2 pt-2">

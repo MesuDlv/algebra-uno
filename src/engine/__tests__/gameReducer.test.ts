@@ -635,6 +635,72 @@ describe('Motor de Reglas Determinista de ALGEBRA UNO (gameReducer)', () => {
       expect(state.currentTurnIndex).toBe(1);
       expect(state.drawnCardThisTurn).toBeNull();
     });
+
+    it('tras robar, el jugador puede decidir jugar otra carta válida que tenía en su mano en vez de la robada', () => {
+      let state = gameReducer(createInitialState(), {
+        seq: 1,
+        uid: 'u1',
+        type: 'start',
+        payload: { seed: 123, players: players2 },
+      });
+
+      const cardAlreadyInHand: Card = {
+        id: 'c_already_in_hand',
+        color: 'red',
+        type: 'number',
+        value: 3,
+        expressionLatex: 'Z=3',
+        displayCornerLatex: 'Z=3',
+        explanationLatex: 'Z=3',
+        variable: 'Z',
+      };
+
+      const topCard: Card = {
+        id: 'c_top',
+        color: 'red',
+        type: 'number',
+        value: 5,
+        expressionLatex: 'Z=5',
+        displayCornerLatex: 'Z=5',
+        explanationLatex: 'Z=5',
+        variable: 'Z',
+      };
+
+      const drawnPlayable: Card = {
+        id: 'c_drawn_playable',
+        color: 'wild',
+        type: 'wild4',
+        value: 4,
+        expressionLatex: 'x=4',
+        displayCornerLatex: 'x=4',
+        explanationLatex: 'x=4',
+        variable: 'x',
+      };
+
+      state = {
+        ...state,
+        currentTurnIndex: 0,
+        activeColor: 'red',
+        discardPile: [topCard],
+        drawnCardThisTurn: drawnPlayable,
+        players: [
+          { ...state.players[0], hand: [cardAlreadyInHand, drawnPlayable] },
+          state.players[1],
+        ],
+      };
+
+      // El jugador decide tirar la roja que ya tenía en la mano en vez del +4 robado
+      state = gameReducer(state, {
+        seq: 2,
+        uid: 'u1',
+        type: 'play',
+        payload: { cardId: 'c_already_in_hand' },
+      });
+
+      expect(state.players[0].hand.length).toBe(1);
+      expect(state.currentTurnIndex).toBe(1);
+      expect(state.drawnCardThisTurn).toBeNull();
+    });
   });
 
   describe('Regla de UNO y Atrapar', () => {

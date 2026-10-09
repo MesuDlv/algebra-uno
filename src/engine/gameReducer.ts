@@ -183,11 +183,6 @@ export function gameReducer(state: GameState, event: GameEvent): GameState {
 
       const cardToPlay = player.hand[cardIndex];
 
-      // Si robó carta este turno, SOLO puede jugar la carta que robó
-      if (state.drawnCardThisTurn && state.drawnCardThisTurn.id !== cardToPlay.id) {
-        return state;
-      }
-
       const topCard = state.discardPile[state.discardPile.length - 1];
       if (!isCardPlayable(cardToPlay, topCard, state.activeColor, state.accumulatedDrawCount)) {
         // En Modo Sin Ayuda: Si lanza una carta errónea (ej. creyendo que coincide),

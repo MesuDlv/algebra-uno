@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   getPlayerProfile,
@@ -7,7 +7,7 @@ import {
   PlayerProfile,
 } from '../firebase/auth';
 import { createRoom, joinRoom, addBotToRoom } from '../firebase/roomService';
-import { Sparkles, Users, BookOpen, ArrowRight, PlusCircle, Check, Eye, Bot, Coins, ShoppingBag } from 'lucide-react';
+import { Sparkles, Users, BookOpen, ArrowRight, PlusCircle, Check, Eye, Bot, Coins, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getPlayerEconomy, SHOP_CATALOG, PlayerEconomy } from '../utils/economy';
 import { AvatarDisplay } from '../components/common/AvatarDisplay';
 import { ShopModal } from '../components/shop/ShopModal';
@@ -30,6 +30,16 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [economy, setEconomy] = useState<PlayerEconomy>(() => getPlayerEconomy());
   const [showShop, setShowShop] = useState(false);
+  const avatarScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollAvatars = (direction: 'left' | 'right') => {
+    if (avatarScrollRef.current) {
+      avatarScrollRef.current.scrollBy({
+        left: direction === 'left' ? -140 : 140,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   // Leer si vino con ?room=XXXXX en la URL
   useEffect(() => {
@@ -122,7 +132,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
   };
 
   return (
-    <div className="min-h-screen uno-board-bg text-slate-100 flex flex-col items-center justify-between p-4 sm:p-6 overflow-y-auto select-none">
+    <div className="min-h-screen uno-board-bg text-slate-100 flex flex-col items-center justify-between p-3 sm:p-6 overflow-y-auto select-none w-full max-w-full overflow-x-hidden">
       {/* Encabezado Logo */}
       <div className="w-full max-w-md flex flex-col items-center text-center mt-2 mb-4">
         <motion.div
@@ -206,29 +216,59 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
               onBlur={handleNameBlur}
               placeholder="Tu nombre o apodo (Ej: Gauss)"
               maxLength={15}
-              className="flex-1 bg-black/40 border border-white/20 rounded-xl px-3.5 py-3 text-sm font-semibold text-white placeholder:text-white/40 focus:outline-none focus:border-amber-400 transition"
+              className="min-w-0 flex-1 bg-black/40 border border-white/20 rounded-xl px-3.5 py-3 text-sm font-semibold text-white placeholder:text-white/40 focus:outline-none focus:border-amber-400 transition"
             />
           </div>
 
-          {/* Selección de avatar: Avatares estándar + Desbloqueados de la tienda */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1 pb-1">
-            {[
-              ...AVAILABLE_AVATARS,
-              ...SHOP_CATALOG.filter((i) => economy.unlockedAvatars.includes(i.id)).map((i) => i.value),
-            ].map((av) => (
-              <button
-                key={av}
-                type="button"
-                onClick={() => handleAvatarSelect(av)}
-                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center transition-all cursor-pointer overflow-hidden flex-shrink-0 ${
-                  profile.avatar === av
-                    ? 'bg-amber-400/30 border-2 border-amber-300 scale-110 shadow-lg'
-                    : 'bg-black/30 hover:bg-white/10 border border-white/15'
-                }`}
-              >
-                <AvatarDisplay avatar={av} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-xl" />
-              </button>
-            ))}
+          {/* Selección de avatar: Avatares estándar + Desbloqueados de la tienda con controles para PC */}
+          <div className="relative flex items-center gap-1.5 w-full">
+            <button
+              type="button"
+              onClick={() => scrollAvatars('left')}
+              className="w-7 h-7 rounded-full bg-black/50 hover:bg-black/80 border border-white/20 text-white/80 hover:text-white flex items-center justify-center transition cursor-pointer flex-shrink-0 active:scale-95 shadow-md"
+              title="Desplazar avatares a la izquierda"
+              aria-label="Anterior avatar"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            <div
+              ref={avatarScrollRef}
+              onWheel={(e) => {
+                if (e.deltaY !== 0) {
+                  e.currentTarget.scrollLeft += e.deltaY;
+                }
+              }}
+              className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar py-1 px-1 scroll-smooth cursor-grab active:cursor-grabbing select-none"
+            >
+              {[
+                ...AVAILABLE_AVATARS,
+                ...SHOP_CATALOG.filter((i) => economy.unlockedAvatars.includes(i.id)).map((i) => i.value),
+              ].map((av) => (
+                <button
+                  key={av}
+                  type="button"
+                  onClick={() => handleAvatarSelect(av)}
+                  className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center transition-all cursor-pointer overflow-hidden flex-shrink-0 ${
+                    profile.avatar === av
+                      ? 'bg-amber-400/30 border-2 border-amber-300 scale-110 shadow-lg'
+                      : 'bg-black/30 hover:bg-white/10 border border-white/15'
+                  }`}
+                >
+                  <AvatarDisplay avatar={av} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-xl" />
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => scrollAvatars('right')}
+              className="w-7 h-7 rounded-full bg-black/50 hover:bg-black/80 border border-white/20 text-white/80 hover:text-white flex items-center justify-center transition cursor-pointer flex-shrink-0 active:scale-95 shadow-md"
+              title="Desplazar avatares a la derecha"
+              aria-label="Siguiente avatar"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
@@ -332,19 +372,19 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
         {/* Tarjeta: Unirse a Sala */}
         <form
           onSubmit={handleJoinSubmit}
-          className="p-5 rounded-3xl bg-black/40 border border-white/15 shadow-2xl backdrop-blur-md"
+          className="p-4 sm:p-5 rounded-3xl bg-black/40 border border-white/15 shadow-2xl backdrop-blur-md"
         >
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Users className="w-5 h-5 text-amber-300" />
-              Unirse a una Sala
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300" />
+              <span>Unirse a una Sala</span>
             </h2>
 
             {/* Toggle entrar como espectador */}
             <button
               type="button"
               onClick={() => setJoinAsSpectator(!joinAsSpectator)}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold border transition cursor-pointer flex-shrink-0 ${
                 joinAsSpectator
                   ? 'bg-purple-600/80 border-purple-400 text-white'
                   : 'bg-black/30 border-white/10 text-slate-300 hover:text-white'
@@ -355,21 +395,21 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
             </button>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full">
             <input
               type="text"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="CÓDIGO (5 LETRAS)"
+              placeholder="CÓDIGO"
               maxLength={5}
-              className="flex-1 bg-black/40 border border-white/20 rounded-2xl px-4 py-3 text-center text-lg font-black tracking-widest text-yellow-300 placeholder:text-white/40 placeholder:text-xs placeholder:tracking-normal focus:outline-none focus:border-amber-400 font-mono transition"
+              className="min-w-0 flex-1 bg-black/40 border border-white/20 rounded-2xl px-3 sm:px-4 py-3 text-center text-base sm:text-lg font-black tracking-widest text-yellow-300 placeholder:text-white/40 placeholder:text-xs placeholder:tracking-normal focus:outline-none focus:border-amber-400 font-mono transition"
             />
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={isJoining || joinCode.length < 5}
-              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-sm shadow-lg shadow-amber-400/30 disabled:opacity-40 cursor-pointer"
+              className="flex-shrink-0 px-4 sm:px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-400/30 disabled:opacity-40 cursor-pointer whitespace-nowrap"
             >
               {isJoining ? '...' : 'Entrar'}
             </motion.button>
