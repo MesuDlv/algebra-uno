@@ -121,7 +121,7 @@ export const OpponentsBar: React.FC<OpponentsBarProps> = React.memo(({
               {/* Avatar con contador de cartas superpuesto */}
               <div className="relative flex-shrink-0">
                 <div
-                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border shadow overflow-hidden ${
+                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border shadow overflow-hidden ${
                     isDisconnected
                       ? 'border-red-500 bg-red-950/80'
                       : isVulnerable
@@ -131,7 +131,7 @@ export const OpponentsBar: React.FC<OpponentsBarProps> = React.memo(({
                       : 'border-slate-600 bg-slate-800'
                   }`}
                 >
-                  <AvatarDisplay avatar={opp.avatar} className="w-full h-full rounded-full object-cover" fallbackClassName="text-sm sm:text-base leading-none" />
+                  <AvatarDisplay avatar={opp.avatar} className="w-full h-full rounded-full object-cover" fallbackClassName="text-base sm:text-lg leading-none" />
                 </div>
 
                 {/* Cantidad de cartas */}
@@ -219,7 +219,7 @@ export const OpponentsBar: React.FC<OpponentsBarProps> = React.memo(({
               <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
                 <div className="relative">
                   <div
-                    className={`w-9 h-9 sm:w-10 sm:h-10 lg:w-13 lg:h-13 xl:w-14 xl:h-14 rounded-full flex items-center justify-center border-2 shadow-xl overflow-hidden ${
+                    className={`w-11 h-11 sm:w-12 sm:h-12 lg:w-15 lg:h-15 xl:w-16 xl:h-16 rounded-full flex items-center justify-center border-2 shadow-xl overflow-hidden ${
                       isVulnerable
                         ? 'border-rose-400 bg-rose-900/70 ring-3 ring-rose-500'
                         : isHisTurn
@@ -227,7 +227,7 @@ export const OpponentsBar: React.FC<OpponentsBarProps> = React.memo(({
                         : 'border-slate-500 bg-slate-900/80'
                     }`}
                   >
-                    <AvatarDisplay avatar={opp.avatar} className="w-full h-full rounded-full object-cover" fallbackClassName="text-lg sm:text-xl lg:text-2xl leading-none" />
+                    <AvatarDisplay avatar={opp.avatar} className="w-full h-full rounded-full object-cover" fallbackClassName="text-xl sm:text-2xl lg:text-3xl leading-none" />
                   </div>
 
                   {/* Badge de cantidad de cartas */}

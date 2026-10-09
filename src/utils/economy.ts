@@ -23,6 +23,8 @@ export interface PlayerEconomy {
   redeemedCodes: string[];
 }
 
+import patriaMilagroAsset from '../assets/avatars/patria_milagro.jpg';
+
 const ECONOMY_STORAGE_KEY = 'algebra_uno_player_economy';
 
 export const SHOP_CATALOG: ShopItem[] = [
@@ -30,37 +32,10 @@ export const SHOP_CATALOG: ShopItem[] = [
     id: 'avatar_patria_milagro',
     name: 'Patria Milagro',
     type: 'avatar',
-    value: '/avatars/patria_milagro.jpg',
+    value: patriaMilagroAsset,
     price: 2500,
     description: 'Avatar legendario del Patriota. Demuestra tu devoción y disciplina algebraica en la mesa.',
     rarity: 'legendario',
-  },
-  {
-    id: 'avatar_corona_oro',
-    name: 'Rey del Álgebra',
-    type: 'avatar',
-    value: '👑',
-    price: 1200,
-    description: 'Corona dorada reservada para los maestros del cálculo rápido.',
-    rarity: 'épico',
-  },
-  {
-    id: 'avatar_dragon_fuego',
-    name: 'Dragón Incandescente',
-    type: 'avatar',
-    value: '🐉',
-    price: 800,
-    description: 'Espíritu feroz para intimidar a tus oponentes en partidas reñidas.',
-    rarity: 'raro',
-  },
-  {
-    id: 'avatar_galaxia',
-    name: 'Viajero Cósmico',
-    type: 'avatar',
-    value: '🌌',
-    price: 500,
-    description: 'Mente infinita como el cosmos algebraico.',
-    rarity: 'común',
   },
 ];
 

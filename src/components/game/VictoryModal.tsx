@@ -176,11 +176,11 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                   <div className="flex-1 flex flex-col items-center">
                     {/* Avatar y Nombre */}
                     <div className="relative mb-2 flex flex-col items-center">
-                      <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-slate-900 border-2 border-slate-300 p-0.5 shadow-md flex items-center justify-center overflow-hidden">
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-slate-900 border-2 border-slate-300 p-0.5 shadow-md flex items-center justify-center overflow-hidden">
                         <AvatarDisplay
                           avatar={top2.avatar}
                           className="w-full h-full rounded-full object-cover"
-                          fallbackClassName="text-xl sm:text-2xl"
+                          fallbackClassName="text-2xl sm:text-3xl"
                         />
                       </div>
                       <span className="text-[11px] sm:text-xs font-black text-slate-200 truncate max-w-[85px] mt-1">
@@ -219,11 +219,11 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
                     {/* Avatar y Nombre */}
                     <div className="relative mb-2 flex flex-col items-center">
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-slate-900 border-3 border-amber-400 p-0.5 shadow-xl ring-4 ring-amber-400/40 flex items-center justify-center overflow-hidden">
+                      <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-slate-900 border-3 border-amber-400 p-1 shadow-xl ring-4 ring-amber-400/40 flex items-center justify-center overflow-hidden">
                         <AvatarDisplay
                           avatar={top1.avatar}
                           className="w-full h-full rounded-full object-cover"
-                          fallbackClassName="text-2xl sm:text-3xl"
+                          fallbackClassName="text-3xl sm:text-4xl"
                         />
                       </div>
                       <span className="text-xs sm:text-sm font-black text-yellow-300 truncate max-w-[100px] mt-1">
@@ -257,11 +257,11 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                   <div className="flex-1 flex flex-col items-center">
                     {/* Avatar y Nombre */}
                     <div className="relative mb-2 flex flex-col items-center">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-900 border-2 border-amber-700 p-0.5 shadow-md flex items-center justify-center overflow-hidden">
+                      <div className="w-13 h-13 sm:w-15 sm:h-15 rounded-full bg-slate-900 border-2 border-amber-700 p-0.5 shadow-md flex items-center justify-center overflow-hidden">
                         <AvatarDisplay
                           avatar={top3.avatar}
                           className="w-full h-full rounded-full object-cover"
-                          fallbackClassName="text-lg sm:text-xl"
+                          fallbackClassName="text-xl sm:text-2xl"
                         />
                       </div>
                       <span className="text-[11px] sm:text-xs font-black text-slate-300 truncate max-w-[85px] mt-1">

@@ -214,8 +214,8 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
         {myMember && (
           <div className="p-3 rounded-2xl bg-black/30 border border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-slate-800 border border-white/20">
-                <AvatarDisplay avatar={myMember.avatar} className="w-full h-full rounded-full object-cover" fallbackClassName="text-lg" />
+              <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-slate-800 border border-white/20 flex-shrink-0">
+                <AvatarDisplay avatar={myMember.avatar} className="w-full h-full rounded-full object-cover" fallbackClassName="text-xl" />
               </div>
               <div className="text-left">
                 <div className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -305,8 +305,8 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center shadow-inner overflow-hidden">
-                      <AvatarDisplay avatar={member.avatar} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-xl" />
+                    <div className="w-12 h-12 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center shadow-inner overflow-hidden flex-shrink-0">
+                      <AvatarDisplay avatar={member.avatar} className="w-full h-full rounded-2xl object-cover" fallbackClassName="text-2xl" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -387,8 +387,8 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center bg-slate-800">
-                        <AvatarDisplay avatar={spectator.avatar} className="w-full h-full object-cover" fallbackClassName="text-xs" />
+                      <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-slate-800 flex-shrink-0">
+                        <AvatarDisplay avatar={spectator.avatar} className="w-full h-full object-cover" fallbackClassName="text-sm" />
                       </div>
                       <span className="font-semibold text-slate-200 truncate">
                         {spectator.name} {isMe && '(Tú)'}
@@ -481,9 +481,9 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
                 Editar Mi Nombre y Avatar
               </h3>
 
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 p-0.5 flex items-center justify-center shadow-inner overflow-hidden">
-                  <AvatarDisplay avatar={avatarInput} className="w-full h-full rounded-2xl object-cover" fallbackClassName="text-2xl" />
+              <div className="flex items-center gap-3.5 mb-2">
+                <div className="w-16 h-16 rounded-2xl bg-white/10 border-2 border-amber-400/50 p-1 flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0">
+                  <AvatarDisplay avatar={avatarInput} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-3xl" />
                 </div>
                 <input
                   type="text"
@@ -496,7 +496,7 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
               </div>
 
               {/* Selección de avatar: Estándar + Desbloqueados de la tienda */}
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1">
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1 pb-1">
                 {[
                   ...AVAILABLE_AVATARS,
                   ...SHOP_CATALOG.filter((i) => economy.unlockedAvatars.includes(i.id)).map((i) => i.value),
@@ -505,13 +505,13 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
                     key={av}
                     type="button"
                     onClick={() => setAvatarInput(av)}
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer overflow-hidden flex-shrink-0 ${
+                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center transition-all cursor-pointer overflow-hidden flex-shrink-0 ${
                       avatarInput === av
                         ? 'bg-amber-400/30 border-2 border-amber-300 scale-110 shadow-lg'
                         : 'bg-black/30 hover:bg-white/10 border border-white/15'
                     }`}
                   >
-                    <AvatarDisplay avatar={av} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-base" />
+                    <AvatarDisplay avatar={av} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-xl" />
                   </button>
                 ))}
               </div>

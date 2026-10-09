@@ -826,10 +826,12 @@ export const GamePage: React.FC<GamePageProps> = ({
         />
       </div>
 
-      {/* Modal de Selector de Color (Wildcards) */}
+      {/* Modal de Selector de Color (Wildcards) con vista previa de mis cartas */}
       <ColorPickerModal
         isOpen={Boolean(pendingWildCard) || isPendingMyColorChoice}
         onSelectColor={isPendingMyColorChoice ? handlePendingColorSelection : handleSelectColor}
+        hand={myPlayer?.hand}
+        pendingCardId={pendingWildCard?.id}
       />
 
       {/* Modal de Inspección / Explicación Paso a Paso con KaTeX */}

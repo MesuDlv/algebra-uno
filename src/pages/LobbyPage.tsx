@@ -195,9 +195,9 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
             Tu Perfil de Jugador
           </label>
 
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 p-0.5 flex items-center justify-center shadow-inner overflow-hidden">
-              <AvatarDisplay avatar={profile.avatar} className="w-full h-full rounded-2xl object-cover" fallbackClassName="text-2xl" />
+          <div className="flex items-center gap-3.5 mb-3">
+            <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-white/10 border-2 border-amber-400/50 p-1 flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0">
+              <AvatarDisplay avatar={profile.avatar} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-3xl sm:text-4xl" />
             </div>
             <input
               type="text"
@@ -206,12 +206,12 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
               onBlur={handleNameBlur}
               placeholder="Tu nombre o apodo (Ej: Gauss)"
               maxLength={15}
-              className="flex-1 bg-black/40 border border-white/20 rounded-xl px-3 py-2.5 text-sm font-semibold text-white placeholder:text-white/40 focus:outline-none focus:border-amber-400 transition"
+              className="flex-1 bg-black/40 border border-white/20 rounded-xl px-3.5 py-3 text-sm font-semibold text-white placeholder:text-white/40 focus:outline-none focus:border-amber-400 transition"
             />
           </div>
 
           {/* Selección de avatar: Avatares estándar + Desbloqueados de la tienda */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1 pb-1">
             {[
               ...AVAILABLE_AVATARS,
               ...SHOP_CATALOG.filter((i) => economy.unlockedAvatars.includes(i.id)).map((i) => i.value),
@@ -220,13 +220,13 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
                 key={av}
                 type="button"
                 onClick={() => handleAvatarSelect(av)}
-                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer overflow-hidden flex-shrink-0 ${
+                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center transition-all cursor-pointer overflow-hidden flex-shrink-0 ${
                   profile.avatar === av
                     ? 'bg-amber-400/30 border-2 border-amber-300 scale-110 shadow-lg'
                     : 'bg-black/30 hover:bg-white/10 border border-white/15'
                 }`}
               >
-                <AvatarDisplay avatar={av} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-base" />
+                <AvatarDisplay avatar={av} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-xl" />
               </button>
             ))}
           </div>

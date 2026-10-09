@@ -98,10 +98,11 @@ describe('Sistema de Economía y Monedas (economy.ts)', () => {
   });
 
   describe('Tienda y Compra de Recompensas', () => {
-    it('incluye el avatar especial "Patria Milagro" en el catálogo con ruta de imagen', () => {
+    it('incluye únicamente el avatar especial "Patria Milagro" en el catálogo con ruta de imagen', () => {
+      expect(SHOP_CATALOG).toHaveLength(1);
       const patriaItem = SHOP_CATALOG.find((i) => i.id === 'avatar_patria_milagro');
       expect(patriaItem).toBeDefined();
-      expect(patriaItem?.value).toBe('/avatars/patria_milagro.jpg');
+      expect(patriaItem?.value).toContain('patria_milagro');
       expect(patriaItem?.price).toBe(2500);
       expect(patriaItem?.rarity).toBe('legendario');
     });

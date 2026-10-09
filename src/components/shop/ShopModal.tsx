@@ -209,7 +209,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({
               Recompensa Especial de Avatar
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="max-w-md mx-auto">
               {SHOP_CATALOG.map((item) => {
                 const isOwned = economy.unlockedAvatars.includes(item.id);
                 const isEquipped = currentAvatar === item.value;
@@ -219,40 +219,28 @@ export const ShopModal: React.FC<ShopModalProps> = ({
                   <motion.div
                     key={item.id}
                     whileHover={{ scale: 1.01 }}
-                    className={`relative rounded-2xl p-3.5 flex flex-col justify-between border transition-all ${
-                      item.rarity === 'legendario'
-                        ? 'bg-gradient-to-b from-amber-950/40 via-slate-900 to-black border-amber-400/60 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
-                        : 'bg-slate-900/80 border-white/10 hover:border-white/20'
-                    }`}
+                    className="relative rounded-3xl p-4 sm:p-5 flex flex-col justify-between border transition-all bg-gradient-to-b from-amber-950/40 via-slate-900 to-black border-amber-400/60 shadow-[0_0_30px_rgba(245,158,11,0.25)]"
                   >
                     {/* Badge de rareza */}
-                    <div className="flex items-center justify-between mb-2">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
-                          item.rarity === 'legendario'
-                            ? 'bg-amber-400 text-slate-950 border-yellow-200'
-                            : item.rarity === 'épico'
-                            ? 'bg-purple-900/80 text-purple-200 border-purple-400/50'
-                            : 'bg-blue-900/80 text-blue-200 border-blue-400/50'
-                        }`}
-                      >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border bg-amber-400 text-slate-950 border-yellow-200">
                         {item.rarity}
                       </span>
 
                       {isOwned && (
-                        <span className="flex items-center gap-0.5 text-[9px] font-bold text-emerald-400">
-                          <Check className="w-3 h-3" /> Adquirido
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400">
+                          <Check className="w-3.5 h-3.5" /> Adquirido
                         </span>
                       )}
                     </div>
 
-                    {/* Previsualización del Avatar */}
-                    <div className="flex items-center gap-3 my-1">
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-black/60 border-2 border-amber-400/40 p-1 flex items-center justify-center flex-shrink-0 shadow-inner overflow-hidden">
+                    {/* Previsualización del Avatar Grande */}
+                    <div className="flex items-center gap-4 my-2">
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-black/60 border-2 border-amber-400/60 p-1 flex items-center justify-center flex-shrink-0 shadow-2xl ring-2 ring-amber-400/30 overflow-hidden">
                         <AvatarDisplay
                           avatar={item.value}
-                          className="w-full h-full rounded-xl object-cover"
-                          fallbackClassName="text-3xl"
+                          className="w-full h-full rounded-2xl object-cover"
+                          fallbackClassName="text-4xl"
                         />
                       </div>
 
