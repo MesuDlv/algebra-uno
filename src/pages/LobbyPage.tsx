@@ -206,8 +206,8 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
           </label>
 
           <div className="flex items-center gap-3.5 mb-3">
-            <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-white/10 border-2 border-amber-400/50 p-1 flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0">
-              <AvatarDisplay avatar={profile.avatar} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-3xl sm:text-4xl" />
+            <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-black/60 border-2 border-amber-400/60 p-1 flex items-center justify-center shadow-2xl overflow-hidden flex-shrink-0 ring-2 ring-amber-400/30">
+              <AvatarDisplay avatar={profile.avatar} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-4xl sm:text-5xl" />
             </div>
             <input
               type="text"
@@ -239,7 +239,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
                   e.currentTarget.scrollLeft += e.deltaY;
                 }
               }}
-              className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar py-1 px-1 scroll-smooth cursor-grab active:cursor-grabbing select-none"
+              className="flex-1 flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1.5 px-1 scroll-smooth cursor-grab active:cursor-grabbing select-none"
             >
               {[
                 ...AVAILABLE_AVATARS,
@@ -251,11 +251,11 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
                   onClick={() => handleAvatarSelect(av)}
                   className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center transition-all cursor-pointer overflow-hidden flex-shrink-0 ${
                     profile.avatar === av
-                      ? 'bg-amber-400/30 border-2 border-amber-300 scale-110 shadow-lg'
-                      : 'bg-black/30 hover:bg-white/10 border border-white/15'
+                      ? 'bg-amber-400/30 border-2 border-amber-300 scale-110 shadow-lg ring-2 ring-amber-400/40'
+                      : 'bg-black/40 hover:bg-white/10 border border-white/15'
                   }`}
                 >
-                  <AvatarDisplay avatar={av} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-xl" />
+                  <AvatarDisplay avatar={av} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-2xl" />
                 </button>
               ))}
             </div>

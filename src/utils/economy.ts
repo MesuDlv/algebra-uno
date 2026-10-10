@@ -8,20 +8,27 @@
 export interface ShopItem {
   id: string;
   name: string;
-  type: 'avatar';
-  value: string; // Ruta de imagen o emoji
+  type: 'avatar' | 'music';
+  value: string; // Ruta de imagen, emoji o ID de YouTube principal
+  mobileValue?: string; // ID de YouTube alternativo compatible con reproducción móvil en caso de restricciones de embebido
   price: number;
   description: string;
   rarity: 'común' | 'raro' | 'épico' | 'legendario';
   codeOnly?: boolean;
   hidden?: boolean; // Si es true, no aparece listado públicamente en el catálogo de la tienda
+  realTitle?: string; // Título real para pistas musicales (solo revelado al desbloquear)
+  artist?: string; // Artista musical
+  youtubeUrl?: string;
 }
 
 export interface PlayerEconomy {
   coins: number;
   victories: number;
   gamesPlayed: number;
-  unlockedAvatars: string[]; // IDs de ítems desbloqueados
+  unlockedAvatars: string[]; // IDs de avatares desbloqueados
+  unlockedMusic: string[]; // IDs de canciones desbloqueadas
+  equippedMusic: string | null; // ID de la canción en reproducción actual
+  equippedPlaylist: string[]; // Lista de IDs de canciones en el bucle activo
   redeemedCodes: string[];
 }
 
@@ -33,6 +40,7 @@ import jesusAlCuadradoAsset from '../assets/avatars/jesus_al_cuadrado.jpg';
 const ECONOMY_STORAGE_KEY = 'algebra_uno_player_economy';
 
 export const SHOP_CATALOG: ShopItem[] = [
+  // --- AVATARES EXCLUSIVOS ---
   {
     id: 'avatar_patria_milagro',
     name: 'Patria Milagro',
@@ -71,6 +79,47 @@ export const SHOP_CATALOG: ShopItem[] = [
     codeOnly: true,
     hidden: true,
   },
+
+  // --- PISTAS DE MÚSICA EXCLUSIVAS (Sin descripciones, solo títulos limpios) ---
+  {
+    id: 'music_fisica_quimica',
+    name: 'Canción de estudiantes de Física o Química',
+    type: 'music',
+    value: 'ga4_APeE4Yg', // En PC reproduce el video original de estudio con letra
+    mobileValue: 'EZ4cDmM4AwM', // En móviles reproduce la presentación de los Premios Billboard cantada por Enrique Iglesias, Descemer y Gente de Zona (100% compatible sin bloqueo de UMG)
+    price: 3500, // Más cara que Patria Milagro (2500)
+    description: '',
+    rarity: 'legendario',
+    realTitle: 'Bailando',
+    artist: 'Enrique Iglesias ft. Descemer Bueno, Gente De Zona',
+    youtubeUrl: 'https://youtu.be/ga4_APeE4Yg?si=CX6cc6DYx5yKCwGe',
+  },
+  {
+    id: 'music_aura',
+    name: 'Canción con Aura',
+    type: 'music',
+    value: '-xUkPo2q3zc',
+    price: 2000, // Más cara que los avatares épicos (1500)
+    description: '',
+    rarity: 'épico',
+    realTitle: 'AURA',
+    artist: 'Ogryzek',
+    youtubeUrl: 'https://youtu.be/-xUkPo2q3zc?si=2Jn-mqbUlN1BSYew',
+  },
+  {
+    id: 'music_patria_milagro',
+    name: 'Himno del Tigre Patriota',
+    type: 'music',
+    value: 'STOfx5VI0Dk',
+    price: 0,
+    description: '',
+    rarity: 'legendario',
+    realTitle: 'El Tigre de la Patria',
+    artist: 'Nicolás Tovar • Abelardo De La Espriella',
+    youtubeUrl: 'https://youtu.be/STOfx5VI0Dk?si=Uv5yEBpL0PtJXwQY',
+    codeOnly: true,
+    hidden: true,
+  },
 ];
 
 const DEFAULT_ECONOMY: PlayerEconomy = {
@@ -78,6 +127,9 @@ const DEFAULT_ECONOMY: PlayerEconomy = {
   victories: 0,
   gamesPlayed: 0,
   unlockedAvatars: [],
+  unlockedMusic: [],
+  equippedMusic: null,
+  equippedPlaylist: [],
   redeemedCodes: [],
 };
 
@@ -95,6 +147,13 @@ export function getPlayerEconomy(): PlayerEconomy {
           victories: typeof parsed.victories === 'number' ? parsed.victories : 0,
           gamesPlayed: typeof parsed.gamesPlayed === 'number' ? parsed.gamesPlayed : 0,
           unlockedAvatars: Array.isArray(parsed.unlockedAvatars) ? parsed.unlockedAvatars : [],
+          unlockedMusic: Array.isArray(parsed.unlockedMusic) ? parsed.unlockedMusic : [],
+          equippedMusic: typeof parsed.equippedMusic === 'string' ? parsed.equippedMusic : null,
+          equippedPlaylist: Array.isArray(parsed.equippedPlaylist)
+            ? parsed.equippedPlaylist
+            : typeof parsed.equippedMusic === 'string' && parsed.equippedMusic
+            ? [parsed.equippedMusic]
+            : [],
           redeemedCodes: Array.isArray(parsed.redeemedCodes) ? parsed.redeemedCodes : [],
         };
       }
@@ -236,12 +295,17 @@ export function purchaseShopItem(itemId: string): { success: boolean; message: s
   if (item.codeOnly) {
     return {
       success: false,
-      message: 'Este avatar exclusivo solo se puede desbloquear canjeando su código secreto.',
+      message: 'Este ítem exclusivo solo se puede desbloquear canjeando su código secreto.',
     };
   }
 
   const economy = getPlayerEconomy();
-  if (economy.unlockedAvatars.includes(item.id)) {
+  const isMusic = item.type === 'music';
+  const isOwned = isMusic
+    ? economy.unlockedMusic.includes(item.id)
+    : economy.unlockedAvatars.includes(item.id);
+
+  if (isOwned) {
     return { success: false, message: 'Ya has adquirido este ítem.' };
   }
 
@@ -252,24 +316,113 @@ export function purchaseShopItem(itemId: string): { success: boolean; message: s
     };
   }
 
+  const currentPlaylist = Array.isArray(economy.equippedPlaylist) ? economy.equippedPlaylist : [];
+  const nextPlaylist = isMusic
+    ? currentPlaylist.length === 0
+      ? [item.id]
+      : currentPlaylist
+    : currentPlaylist;
+  const nextEquipped = isMusic && !economy.equippedMusic ? item.id : economy.equippedMusic;
+
   const updated: PlayerEconomy = {
     ...economy,
     coins: economy.coins - item.price,
-    unlockedAvatars: [...economy.unlockedAvatars, item.id],
+    unlockedAvatars: isMusic
+      ? economy.unlockedAvatars
+      : [...economy.unlockedAvatars, item.id],
+    unlockedMusic: isMusic
+      ? [...economy.unlockedMusic, item.id]
+      : economy.unlockedMusic,
+    equippedMusic: nextEquipped,
+    equippedPlaylist: nextPlaylist,
   };
 
   savePlayerEconomy(updated);
   return {
     success: true,
-    message: `¡Has adquirido ${item.name}! Ya puedes usarlo de avatar.`,
+    message: isMusic
+      ? `¡Has adquirido "${item.name}"! Ahora puedes añadirla al bucle de música del lobby.`
+      : `¡Has adquirido ${item.name}! Ya puedes usarlo de avatar.`,
     updatedItem: item,
   };
+}
+
+/**
+ * Equipa una única pista de música (reemplaza la lista actual) o silencia si es null.
+ */
+export function equipMusic(trackId: string | null): PlayerEconomy {
+  const economy = getPlayerEconomy();
+  if (trackId !== null && !economy.unlockedMusic.includes(trackId)) {
+    return economy;
+  }
+  const updated: PlayerEconomy = {
+    ...economy,
+    equippedMusic: trackId,
+    equippedPlaylist: trackId ? [trackId] : [],
+  };
+  savePlayerEconomy(updated);
+  return updated;
+}
+
+/**
+ * Alterna una canción dentro o fuera de la lista de reproducción en bucle.
+ * Si hay 2 seleccionadas, al terminar una empieza la otra y viceversa.
+ */
+export function togglePlaylistTrack(trackId: string): PlayerEconomy {
+  const economy = getPlayerEconomy();
+  if (!economy.unlockedMusic.includes(trackId)) {
+    return economy;
+  }
+  const currentList = Array.isArray(economy.equippedPlaylist) ? economy.equippedPlaylist : [];
+  const exists = currentList.includes(trackId);
+  const nextList = exists
+    ? currentList.filter((id) => id !== trackId)
+    : [...currentList, trackId];
+
+  let nextEquipped = economy.equippedMusic;
+  if (exists) {
+    if (nextEquipped === trackId) {
+      nextEquipped = nextList[0] || null;
+    }
+  } else {
+    if (!nextEquipped) {
+      nextEquipped = trackId;
+    }
+  }
+
+  const updated: PlayerEconomy = {
+    ...economy,
+    equippedPlaylist: nextList,
+    equippedMusic: nextEquipped,
+  };
+  savePlayerEconomy(updated);
+  return updated;
+}
+
+/**
+ * Establece la lista de reproducción activa en bucle.
+ */
+export function setPlaylist(trackIds: string[]): PlayerEconomy {
+  const economy = getPlayerEconomy();
+  const validTracks = trackIds.filter((id) => economy.unlockedMusic.includes(id));
+  const nextEquipped = validTracks.includes(economy.equippedMusic || '')
+    ? economy.equippedMusic
+    : validTracks[0] || null;
+
+  const updated: PlayerEconomy = {
+    ...economy,
+    equippedPlaylist: validTracks,
+    equippedMusic: nextEquipped,
+  };
+  savePlayerEconomy(updated);
+  return updated;
 }
 
 /**
  * Canjea un código promocional.
  * - 'BIENVENIDOALAPATRIAMILAGRO': otorga 100,000,000 monedas (100M).
  * - 'niñobetun': desbloquea el avatar exclusivo de Niño Betún.
+ * - 'patria milagro' / 'patriamilagro': desbloquea la canción secreta de la Patria Milagro.
  */
 export function redeemPromoCode(code: string): {
   success: boolean;
@@ -333,6 +486,44 @@ export function redeemPromoCode(code: string): {
     };
   }
 
+  // Código secreto para desbloquear la pista exclusiva Patria Milagro
+  const cleanCodeNoSpaces = asciiClean.replace(/\s+/g, '');
+  if (
+    cleanCodeNoSpaces === 'patriamilagro' ||
+    asciiClean === 'patria milagro' ||
+    normalized === 'PATRIA MILAGRO' ||
+    normalized === 'PATRIAMILAGRO'
+  ) {
+    const economy = getPlayerEconomy();
+
+    if (economy.unlockedMusic.includes('music_patria_milagro')) {
+      return {
+        success: false,
+        message: 'Ya has desbloqueado la canción de la Patria Milagro anteriormente.',
+      };
+    }
+
+    const currentList = Array.isArray(economy.equippedPlaylist) ? economy.equippedPlaylist : [];
+    const nextList = currentList.includes('music_patria_milagro')
+      ? currentList
+      : [...currentList, 'music_patria_milagro'];
+
+    const updated: PlayerEconomy = {
+      ...economy,
+      unlockedMusic: Array.from(new Set([...economy.unlockedMusic, 'music_patria_milagro'])),
+      equippedMusic: economy.equippedMusic || 'music_patria_milagro',
+      equippedPlaylist: nextList,
+      redeemedCodes: Array.from(new Set([...economy.redeemedCodes, 'PATRIAMILAGRO'])),
+    };
+
+    savePlayerEconomy(updated);
+    return {
+      success: true,
+      message: '🎉 ¡CÓDIGO SECRETO CANJEADO! Has desbloqueado el himno exclusivo de la Patria Milagro ("El Tigre de la Patria").',
+      avatarUnlocked: 'music_patria_milagro',
+    };
+  }
+
   return {
     success: false,
     message: 'El código promocional no es válido o ha expirado.',
@@ -353,4 +544,26 @@ export function formatCoins(amount: number): string {
     return `${(amount / 1_000).toFixed(1)}K`;
   }
   return amount.toLocaleString();
+}
+
+/**
+ * Detecta si el entorno actual es un navegador móvil (iOS / Android / tablets).
+ */
+export function isMobileDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i;
+  const isIPadOS = (navigator.maxTouchPoints || 0) > 1 && /Macintosh/i.test(ua);
+  return mobileRegex.test(ua) || isIPadOS;
+}
+
+/**
+ * Obtiene el ID efectivo de YouTube para reproducir una pista, tomando en cuenta
+ * si el dispositivo es móvil o si se requiere el ID de fallback libre de bloqueos de embebido.
+ */
+export function getEffectiveTrackValue(track: ShopItem, forceFallback = false): string {
+  if (track.mobileValue && (forceFallback || isMobileDevice())) {
+    return track.mobileValue;
+  }
+  return track.value;
 }

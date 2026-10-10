@@ -15,6 +15,46 @@ interface AvatarDisplayProps {
   avatar?: string;
   className?: string;
   fallbackClassName?: string;
+  style?: React.CSSProperties;
+}
+
+/**
+ * Retorna la posición de encuadre óptima (object-position) para cada avatar,
+ * asegurando que el rostro quede perfectamente visible y centrado sin recortes molestos.
+ */
+export function getAvatarObjectPosition(avatar?: string): string {
+  if (!avatar) return 'center center';
+
+  // sixsevenaldo: cara y gafas en la parte superior (10%)
+  if (avatar === 'avatar_sixsevenaldo' || avatar.includes('sixsevenaldo')) {
+    return 'center 10%';
+  }
+
+  // Jesús al cuadrado: ambos rostros y risas en la parte superior (15%)
+  if (
+    avatar === 'avatar_jesus_al_cuadrado' ||
+    avatar.includes('jesus_al_cuadrado') ||
+    avatar.includes('jesusalcuadrado')
+  ) {
+    return 'center 15%';
+  }
+
+  // Niño Betún: rostro y mano ajustando gafas centrado en 25%
+  if (
+    avatar === 'avatar_nino_betun' ||
+    avatar.includes('nino_betun') ||
+    avatar.includes('niñobetun') ||
+    avatar.includes('ninobetun')
+  ) {
+    return 'center 25%';
+  }
+
+  // Patria Milagro: saludo patriota centrado en 32%
+  if (avatar === 'avatar_patria_milagro' || avatar.includes('patria_milagro')) {
+    return 'center 32%';
+  }
+
+  return 'center center';
 }
 
 export function resolveAvatarUrl(avatar?: string): string | null {
@@ -67,8 +107,10 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({
   avatar = '👤',
   className = 'w-full h-full rounded-full object-cover',
   fallbackClassName = 'text-base select-none leading-none',
+  style,
 }) => {
   const resolvedUrl = resolveAvatarUrl(avatar);
+  const objectPosition = getAvatarObjectPosition(avatar);
 
   if (resolvedUrl) {
     return (
@@ -76,6 +118,10 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({
         src={resolvedUrl}
         alt="Avatar"
         className={className}
+        style={{
+          objectPosition,
+          ...style,
+        }}
         loading="eager"
         decoding="async"
         onError={(e) => {

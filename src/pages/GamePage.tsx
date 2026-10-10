@@ -678,7 +678,7 @@ export const GamePage: React.FC<GamePageProps> = ({
       </AnimatePresence>
 
       {/* Barra superior de la mesa */}
-      <header className="w-full flex items-center justify-between px-2.5 sm:px-4 lg:px-6 pt-[max(0.6rem,env(safe-area-inset-top))] pb-1.5 sm:pb-2 z-30 bg-black/60 backdrop-blur-md border-b border-white/10 flex-shrink-0">
+      <header className="w-full flex items-center justify-between px-2.5 sm:px-4 lg:px-6 pt-[max(0.6rem,env(safe-area-inset-top))] pb-1.5 sm:pb-2 z-30 bg-black/60 backdrop-blur-md border-b border-white/10 flex-shrink-0 pr-14 sm:pr-16">
         <div className="flex items-center gap-2 sm:gap-2.5">
           <button
             onClick={() => setShowExitModal(true)}
@@ -783,8 +783,8 @@ export const GamePage: React.FC<GamePageProps> = ({
       {/* Placa de jugador local en modo horizontal y PC */}
       <div className="hidden landscape:flex absolute bottom-2.5 sm:bottom-3 lg:bottom-5 left-3 sm:left-4 lg:left-8 xl:left-12 z-30 items-center gap-2.5 sm:gap-3 pointer-events-none">
         <div className="relative">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 lg:w-13 lg:h-13 xl:w-14 xl:h-14 rounded-full bg-slate-900 border-2 border-amber-400 p-0.5 flex items-center justify-center shadow-xl ring-2 ring-amber-400/30 overflow-hidden">
-            <AvatarDisplay avatar={myPlayer?.avatar} className="w-full h-full rounded-full object-cover" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 xl:w-15 xl:h-15 rounded-2xl sm:rounded-full bg-slate-900 border-2 border-amber-400 p-0.5 flex items-center justify-center shadow-xl ring-2 ring-amber-400/30 overflow-hidden">
+            <AvatarDisplay avatar={myPlayer?.avatar} className="w-full h-full rounded-2xl sm:rounded-full object-cover" />
           </div>
           <div className="absolute -bottom-1 -right-1 px-1.5 py-0.2 lg:px-2 lg:py-0.5 rounded-full bg-emerald-600 border border-emerald-300 text-white font-black text-[9px] sm:text-[10px] lg:text-xs shadow">
             {myPlayer?.hand.length || 0}

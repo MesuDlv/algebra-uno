@@ -226,8 +226,8 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
         {myMember && (
           <div className="p-3 rounded-2xl bg-black/30 border border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-slate-800 border border-white/20 flex-shrink-0">
-                <AvatarDisplay avatar={myMember.avatar} className="w-full h-full rounded-full object-cover" fallbackClassName="text-xl" />
+              <div className="w-10 h-10 rounded-2xl overflow-hidden flex items-center justify-center bg-slate-800 border-2 border-amber-400/50 flex-shrink-0 shadow-md">
+                <AvatarDisplay avatar={myMember.avatar} className="w-full h-full rounded-2xl object-cover" fallbackClassName="text-2xl" />
               </div>
               <div className="text-left">
                 <div className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -317,7 +317,7 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center shadow-inner overflow-hidden flex-shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-800 border-2 border-slate-700/80 flex items-center justify-center shadow-md overflow-hidden flex-shrink-0">
                       <AvatarDisplay avatar={member.avatar} className="w-full h-full rounded-2xl object-cover" fallbackClassName="text-2xl" />
                     </div>
                     <div>
@@ -494,8 +494,8 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
               </h3>
 
               <div className="flex items-center gap-3.5 mb-2">
-                <div className="w-16 h-16 rounded-2xl bg-white/10 border-2 border-amber-400/50 p-1 flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0">
-                  <AvatarDisplay avatar={avatarInput} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-3xl" />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-black/60 border-2 border-amber-400/60 p-1 flex items-center justify-center shadow-xl overflow-hidden flex-shrink-0 ring-2 ring-amber-400/30">
+                  <AvatarDisplay avatar={avatarInput} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-3xl sm:text-4xl" />
                 </div>
                 <input
                   type="text"
@@ -526,7 +526,7 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
                       e.currentTarget.scrollLeft += e.deltaY;
                     }
                   }}
-                  className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar py-1 px-1 scroll-smooth cursor-grab active:cursor-grabbing select-none"
+                  className="flex-1 flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1.5 px-1 scroll-smooth cursor-grab active:cursor-grabbing select-none"
                 >
                   {[
                     ...AVAILABLE_AVATARS,
@@ -536,13 +536,13 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({
                       key={av}
                       type="button"
                       onClick={() => setAvatarInput(av)}
-                      className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center transition-all cursor-pointer overflow-hidden flex-shrink-0 ${
+                      className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center transition-all cursor-pointer overflow-hidden flex-shrink-0 ${
                         avatarInput === av
-                          ? 'bg-amber-400/30 border-2 border-amber-300 scale-110 shadow-lg'
-                          : 'bg-black/30 hover:bg-white/10 border border-white/15'
+                          ? 'bg-amber-400/30 border-2 border-amber-300 scale-110 shadow-lg ring-2 ring-amber-400/40'
+                          : 'bg-black/40 hover:bg-white/10 border border-white/15'
                       }`}
                     >
-                      <AvatarDisplay avatar={av} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-xl" />
+                      <AvatarDisplay avatar={av} className="w-full h-full rounded-xl object-cover" fallbackClassName="text-2xl" />
                     </button>
                   ))}
                 </div>
