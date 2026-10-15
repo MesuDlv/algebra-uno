@@ -211,7 +211,7 @@ export const SHOP_CATALOG: ShopItem[] = [
     realTitle: 'Amigo Ven Vamos a Israel',
     artist: 'ElPipiKiwi',
     youtubeUrl: 'https://youtube.com/shorts/hcJ5WwGY3JI?si=C8bGbwLDAEeD2THt',
-    duration: 15, // YouTube Short de exactamente 15 segundos
+    duration: 17, // 17 segundos para dar margen completo a los 15s de audio sin cortes
   },
   {
     id: 'music_lamento',
@@ -317,7 +317,7 @@ export const SHOP_CATALOG: ShopItem[] = [
  * avancen de forma precisa y puntual sin depender exclusivamente de eventos externos.
  */
 export const KNOWN_TRACK_DURATIONS: Record<string, number> = {
-  music_politicos: 15,
+  music_politicos: 17, // 17 segundos (15s de audio + margen para buffer)
   music_michael_jackson: 75,
   music_aura: 90,
   music_motivacion_nueva_generacion: 130,

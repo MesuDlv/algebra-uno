@@ -475,6 +475,10 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (playerState === 1) {
           setIsPlaying(true);
           isPlayingRef.current = true;
+          // Si recién comenzó tras el buffer inicial de carga, sincronizar el inicio exacto del audio
+          if (Date.now() - trackStartTimeRef.current < 5000 && lastCurrentTimeRef.current <= 1.5) {
+            trackStartTimeRef.current = Date.now();
+          }
         } else if (playerState === 2) {
           setIsPlaying(false);
           isPlayingRef.current = false;
@@ -525,8 +529,8 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const curTrack = tracks[currentTrackIndexRef.current];
         const dur = getExpectedDuration(curTrack);
 
-        // Detección 1: Fin natural por aproximación a la duración (ventana de 1.2 segundos)
-        if (dur > 2 && currTime >= dur - 1.2) {
+        // Detección 1: Fin natural por aproximación a la duración (ventana completa)
+        if (dur > 2 && currTime >= dur - 0.2) {
           triggerNextTrack();
         }
 
@@ -584,8 +588,8 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       if (expectedDur > 2) {
         const elapsed = (Date.now() - trackStartTimeRef.current) / 1000;
-        // Si el tiempo transcurrido en el reloj real supera la duración esperada menos margen de 0.5s:
-        if (elapsed >= expectedDur - 0.5) {
+        // Si el tiempo transcurrido en el reloj real supera la duración esperada:
+        if (elapsed >= expectedDur) {
           triggerNextTrack();
         }
       }
