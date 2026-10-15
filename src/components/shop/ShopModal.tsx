@@ -180,8 +180,12 @@ export const ShopModal: React.FC<ShopModalProps> = ({
 
   if (!isOpen) return null;
 
-  const avatarItems = SHOP_CATALOG.filter((item) => item.type === 'avatar' && !item.hidden);
-  const musicItems = SHOP_CATALOG.filter((item) => item.type === 'music' && !item.hidden);
+  const avatarItems = SHOP_CATALOG.filter(
+    (item) => item.type === 'avatar' && (!item.hidden || economy.unlockedAvatars.includes(item.id))
+  );
+  const musicItems = SHOP_CATALOG.filter(
+    (item) => item.type === 'music' && (!item.hidden || economy.unlockedMusic.includes(item.id))
+  );
 
   return (
     <AnimatePresence>
@@ -349,20 +353,35 @@ export const ShopModal: React.FC<ShopModalProps> = ({
                         )}
                       </div>
 
-                      {/* Previsualización del Avatar */}
+                      {/* Previsualización del Avatar (Oculto en modo misterio si item.hidePreview hasta que se compre) */}
                       <div className="flex items-center gap-4 my-2">
                         <div
-                          className={`w-20 h-20 sm:w-22 sm:h-22 rounded-2xl bg-black/60 border-2 p-1 flex items-center justify-center flex-shrink-0 shadow-2xl ring-2 overflow-hidden ${
+                          className={`w-20 h-20 sm:w-22 sm:h-22 rounded-2xl bg-black/80 border-2 p-1 flex items-center justify-center flex-shrink-0 shadow-2xl relative overflow-hidden ring-2 ${
                             isEpic
                               ? 'border-purple-400/60 ring-purple-400/30'
                               : 'border-amber-400/60 ring-amber-400/30'
                           }`}
                         >
-                          <AvatarDisplay
-                            avatar={item.value}
-                            className="w-full h-full rounded-xl object-cover"
-                            fallbackClassName="text-4xl"
-                          />
+                          {isOwned || !item.hidePreview ? (
+                            <AvatarDisplay
+                              avatar={item.value}
+                              className="w-full h-full rounded-xl object-cover"
+                              fallbackClassName="text-4xl"
+                            />
+                          ) : (
+                            <div className="w-full h-full rounded-xl bg-gradient-to-br from-purple-950 via-slate-900 to-black flex flex-col items-center justify-center text-amber-300">
+                              <span className="text-3xl font-black animate-pulse">?</span>
+                              <span className="text-[8px] uppercase tracking-wider text-purple-300/90 font-bold">
+                                Misterio
+                              </span>
+                            </div>
+                          )}
+
+                          {!isOwned && item.hidePreview && (
+                            <div className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/60 border border-white/20">
+                              <Lock className="w-3 h-3 text-white/70" />
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex-1 min-w-0">

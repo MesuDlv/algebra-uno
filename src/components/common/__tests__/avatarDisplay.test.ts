@@ -40,6 +40,10 @@ describe('Calibración de Avatares y Música Legendaria', () => {
       expect(resolveAvatarUrl('avatar_jesus_al_cuadrado')).toBeTruthy();
       expect(resolveAvatarUrl('avatar_patria_milagro')).toBeTruthy();
       expect(resolveAvatarUrl('avatar_nino_betun')).toBeTruthy();
+      expect(resolveAvatarUrl('avatar_el_tigre')).toBeTruthy();
+      expect(resolveAvatarUrl('avatar_proyectada_de_cuerpo')).toBeTruthy();
+      expect(resolveAvatarUrl('avatar_uribe')).toBeTruthy();
+      expect(resolveAvatarUrl('avatar_winnie_pooh')).toBeTruthy();
     });
 
     it('retorna null para emojis o símbolos simples', () => {

@@ -16,6 +16,7 @@ export interface ShopItem {
   rarity: 'común' | 'raro' | 'épico' | 'legendario';
   codeOnly?: boolean;
   hidden?: boolean; // Si es true, no aparece listado públicamente en el catálogo de la tienda
+  hidePreview?: boolean; // Si es true, oculta la foto con modo misterio hasta que se compre
   realTitle?: string; // Título real para pistas musicales (solo revelado al desbloquear)
   artist?: string; // Artista musical
   youtubeUrl?: string;
@@ -36,6 +37,10 @@ import patriaMilagroAsset from '../assets/avatars/patria_milagro.jpg';
 import ninoBetunAsset from '../assets/avatars/nino_betun.jpg';
 import sixsevenaldoAsset from '../assets/avatars/sixsevenaldo.jpg';
 import jesusAlCuadradoAsset from '../assets/avatars/jesus_al_cuadrado.jpg';
+import elTigreAsset from '../assets/avatars/El_tigre.jpg';
+import proyectadaDeCuerpoAsset from '../assets/avatars/Proyectada_de_cuerpo.jpg';
+import uribeAsset from '../assets/avatars/Uribe.jpg';
+import winniePoohAsset from '../assets/avatars/winnie_pooh.jpg';
 
 const ECONOMY_STORAGE_KEY = 'algebra_uno_player_economy';
 
@@ -69,6 +74,46 @@ export const SHOP_CATALOG: ShopItem[] = [
     rarity: 'épico',
   },
   {
+    id: 'avatar_el_tigre',
+    name: 'El tigre',
+    type: 'avatar',
+    value: elTigreAsset,
+    price: 1500,
+    description: 'Avatar épico de El tigre.',
+    rarity: 'épico',
+    hidePreview: true,
+  },
+  {
+    id: 'avatar_proyectada_de_cuerpo',
+    name: 'Proyectada de cuerpo',
+    type: 'avatar',
+    value: proyectadaDeCuerpoAsset,
+    price: 1500,
+    description: 'Avatar épico de Proyectada de cuerpo.',
+    rarity: 'épico',
+    hidePreview: true,
+  },
+  {
+    id: 'avatar_uribe',
+    name: 'Uribe',
+    type: 'avatar',
+    value: uribeAsset,
+    price: 1500,
+    description: 'Avatar épico de Uribe.',
+    rarity: 'épico',
+    hidePreview: true,
+  },
+  {
+    id: 'avatar_winnie_pooh',
+    name: 'winnie pooh',
+    type: 'avatar',
+    value: winniePoohAsset,
+    price: 1500,
+    description: 'Avatar épico de winnie pooh.',
+    rarity: 'épico',
+    hidePreview: true,
+  },
+  {
     id: 'avatar_nino_betun',
     name: 'Niño Betún',
     type: 'avatar',
@@ -86,8 +131,8 @@ export const SHOP_CATALOG: ShopItem[] = [
     name: 'Canción de estudiantes de Física o Química',
     type: 'music',
     value: 'ga4_APeE4Yg', // En PC reproduce el video original de estudio con letra
-    mobileValue: 'EZ4cDmM4AwM', // En móviles reproduce la presentación de los Premios Billboard cantada por Enrique Iglesias, Descemer y Gente de Zona (100% compatible sin bloqueo de UMG)
-    price: 3500, // Más cara que Patria Milagro (2500)
+    mobileValue: 'EZ4cDmM4AwM', // En móviles reproduce la presentación de los Premios Billboard cantada por Enrique Iglesias, Descemer y Gente de Zona
+    price: 3500,
     description: '',
     rarity: 'legendario',
     realTitle: 'Bailando',
@@ -99,13 +144,98 @@ export const SHOP_CATALOG: ShopItem[] = [
     name: 'Canción con Aura',
     type: 'music',
     value: '-xUkPo2q3zc',
-    price: 2000, // Más cara que los avatares épicos (1500)
+    price: 2000,
     description: '',
     rarity: 'épico',
     realTitle: 'AURA',
     artist: 'Ogryzek',
     youtubeUrl: 'https://youtu.be/-xUkPo2q3zc?si=2Jn-mqbUlN1BSYew',
   },
+  {
+    id: 'music_rey_del_pop',
+    name: 'La mejor canción del rey del pop',
+    type: 'music',
+    value: '3FIWJxOjLLk',
+    price: 3500,
+    description: '',
+    rarity: 'legendario',
+    realTitle: 'Si Veo a Tu Mamá',
+    artist: 'Bad Bunny',
+    youtubeUrl: 'https://youtu.be/3FIWJxOjLLk?si=EjGF30KolH3-Nhns',
+  },
+  {
+    id: 'music_tutoriales',
+    name: 'Musica perfecta para tutoriales',
+    type: 'music',
+    value: 'TW9d8vYrVFQ',
+    price: 2000,
+    description: '',
+    rarity: 'épico',
+    realTitle: 'Sky High',
+    artist: 'Elektronomia',
+    youtubeUrl: 'https://youtu.be/TW9d8vYrVFQ?si=2AUwduRjE5536SaO',
+  },
+  {
+    id: 'music_michael_jackson',
+    name: 'La mejor canción de michael jackson',
+    type: 'music',
+    value: 'TW9d8vYrVFQ',
+    price: 2000,
+    description: '',
+    rarity: 'épico',
+    realTitle: 'Sky High',
+    artist: 'Elektronomia',
+    youtubeUrl: 'https://youtu.be/TW9d8vYrVFQ?si=2AUwduRjE5536SaO',
+  },
+  {
+    id: 'music_motivacion_nueva_generacion',
+    name: 'Canción de motivación para la nueva generación',
+    type: 'music',
+    value: 'qQ1CPE_pkJg',
+    price: 3500,
+    description: '',
+    rarity: 'legendario',
+    realTitle: 'El Rap de los Criminales (Historias #6)',
+    artist: 'WinnerMax',
+    youtubeUrl: 'https://youtu.be/qQ1CPE_pkJg?si=HVsBSBNF4QfkOEWf',
+  },
+  {
+    id: 'music_politicos',
+    name: 'canción para politicos',
+    type: 'music',
+    value: 'hcJ5WwGY3JI',
+    price: 3500,
+    description: '',
+    rarity: 'legendario',
+    realTitle: 'Amigo Ven Vamos a Israel',
+    artist: 'ElPipiKiwi',
+    youtubeUrl: 'https://youtube.com/shorts/hcJ5WwGY3JI?si=C8bGbwLDAEeD2THt',
+  },
+  {
+    id: 'music_lamento',
+    name: 'cancion que me da mucho lamento oirla',
+    type: 'music',
+    value: 'lYC5wlY8d6A',
+    price: 2000,
+    description: '',
+    rarity: 'épico',
+    realTitle: 'Lamento Boliviano',
+    artist: 'Los Enanitos Verdes',
+    youtubeUrl: 'https://youtu.be/lYC5wlY8d6A?si=xucAe8puWVLcou76',
+  },
+  {
+    id: 'music_fans_abelardo',
+    name: 'Canción que le dedicaria a los fans de abelardo',
+    type: 'music',
+    value: '5_dtgsbQlYg',
+    price: 2000,
+    description: '',
+    rarity: 'épico',
+    realTitle: 'Por Qué No Se Van',
+    artist: 'Los Prisioneros',
+    youtubeUrl: 'https://youtu.be/5_dtgsbQlYg?si=n-HqcIVhCPSUsBdy',
+  },
+  // Canciones secretas por código
   {
     id: 'music_patria_milagro',
     name: 'Himno del Tigre Patriota',
@@ -117,6 +247,62 @@ export const SHOP_CATALOG: ShopItem[] = [
     realTitle: 'El Tigre de la Patria',
     artist: 'Nicolás Tovar • Abelardo De La Espriella',
     youtubeUrl: 'https://youtu.be/STOfx5VI0Dk?si=Uv5yEBpL0PtJXwQY',
+    codeOnly: true,
+    hidden: true,
+  },
+  {
+    id: 'music_arte_moderno_homero',
+    name: 'La canción que hizo temblar el arte moderno',
+    type: 'music',
+    value: 'Qv4T82Dh3hk',
+    price: 0,
+    description: '',
+    rarity: 'legendario',
+    realTitle: 'La Canción de Homero',
+    artist: 'Los Simpson',
+    youtubeUrl: 'https://youtu.be/Qv4T82Dh3hk?si=KtZuQqGcuS0y9puh',
+    codeOnly: true,
+    hidden: true,
+  },
+  {
+    id: 'music_fiesta_nadie_paga',
+    name: 'Fiesta que nadie paga',
+    type: 'music',
+    value: 'zZPvME8H2Oo',
+    price: 0,
+    description: '',
+    rarity: 'legendario',
+    realTitle: 'Fiesta Pagana',
+    artist: 'Mägo de Oz',
+    youtubeUrl: 'https://youtu.be/zZPvME8H2Oo?si=a8_xDGTPu6r9Tw-R',
+    codeOnly: true,
+    hidden: true,
+  },
+  {
+    id: 'music_no_hay_barro',
+    name: 'No hay barro',
+    type: 'music',
+    value: '0ZJRLkILb68',
+    price: 0,
+    description: '',
+    rarity: 'legendario',
+    realTitle: 'A Little Piece of Heaven',
+    artist: 'Avenged Sevenfold',
+    youtubeUrl: 'https://youtu.be/0ZJRLkILb68?si=rX2JPevRUlBy-uc_',
+    codeOnly: true,
+    hidden: true,
+  },
+  {
+    id: 'music_si_feid_fuera_bueno',
+    name: 'Si feid fuera bueno',
+    type: 'music',
+    value: 'pnHXFCfW_Lc',
+    price: 0,
+    description: '',
+    rarity: 'legendario',
+    realTitle: 'Me Pongo Los Jeans De Mi Mamá',
+    artist: 'sa!koro',
+    youtubeUrl: 'https://youtu.be/pnHXFCfW_Lc?si=X_KLuVB2A_sWaLBs',
     codeOnly: true,
     hidden: true,
   },
@@ -521,6 +707,148 @@ export function redeemPromoCode(code: string): {
       success: true,
       message: '🎉 ¡CÓDIGO SECRETO CANJEADO! Has desbloqueado el himno exclusivo de la Patria Milagro ("El Tigre de la Patria").',
       avatarUnlocked: 'music_patria_milagro',
+    };
+  }
+
+  // Código secreto: Homero -> "La canción que hizo temblar el arte moderno"
+  if (
+    cleanCodeNoSpaces === 'homero' ||
+    normalized === 'HOMERO'
+  ) {
+    const trackId = 'music_arte_moderno_homero';
+    const economy = getPlayerEconomy();
+
+    if (economy.unlockedMusic.includes(trackId)) {
+      return {
+        success: false,
+        message: 'Ya has desbloqueado la canción de Homero anteriormente.',
+      };
+    }
+
+    const currentList = Array.isArray(economy.equippedPlaylist) ? economy.equippedPlaylist : [];
+    const nextList = currentList.includes(trackId) ? currentList : [...currentList, trackId];
+
+    const updated: PlayerEconomy = {
+      ...economy,
+      unlockedMusic: Array.from(new Set([...economy.unlockedMusic, trackId])),
+      equippedMusic: economy.equippedMusic || trackId,
+      equippedPlaylist: nextList,
+      redeemedCodes: Array.from(new Set([...economy.redeemedCodes, 'HOMERO'])),
+    };
+
+    savePlayerEconomy(updated);
+    return {
+      success: true,
+      message: '🎉 ¡CÓDIGO SECRETO CANJEADO! Has desbloqueado "La canción que hizo temblar el arte moderno" ("La Canción de Homero").',
+      avatarUnlocked: trackId,
+    };
+  }
+
+  // Código secreto: paga?na -> "Fiesta que nadie paga"
+  if (
+    lower === 'paga?na' ||
+    cleanCodeNoSpaces === 'paga?na' ||
+    lower === 'pagana' ||
+    cleanCodeNoSpaces === 'pagana' ||
+    normalized === 'PAGA?NA' ||
+    normalized === 'PAGANA'
+  ) {
+    const trackId = 'music_fiesta_nadie_paga';
+    const economy = getPlayerEconomy();
+
+    if (economy.unlockedMusic.includes(trackId)) {
+      return {
+        success: false,
+        message: 'Ya has desbloqueado la canción "Fiesta que nadie paga" anteriormente.',
+      };
+    }
+
+    const currentList = Array.isArray(economy.equippedPlaylist) ? economy.equippedPlaylist : [];
+    const nextList = currentList.includes(trackId) ? currentList : [...currentList, trackId];
+
+    const updated: PlayerEconomy = {
+      ...economy,
+      unlockedMusic: Array.from(new Set([...economy.unlockedMusic, trackId])),
+      equippedMusic: economy.equippedMusic || trackId,
+      equippedPlaylist: nextList,
+      redeemedCodes: Array.from(new Set([...economy.redeemedCodes, 'PAGA?NA'])),
+    };
+
+    savePlayerEconomy(updated);
+    return {
+      success: true,
+      message: '🎉 ¡CÓDIGO SECRETO CANJEADO! Has desbloqueado "Fiesta que nadie paga" ("Fiesta Pagana" - Mägo de Oz).',
+      avatarUnlocked: trackId,
+    };
+  }
+
+  // Código secreto: naguaro -> "No hay barro"
+  if (
+    cleanCodeNoSpaces === 'naguaro' ||
+    normalized === 'NAGUARO' ||
+    cleanCodeNoSpaces === 'nohaybarro'
+  ) {
+    const trackId = 'music_no_hay_barro';
+    const economy = getPlayerEconomy();
+
+    if (economy.unlockedMusic.includes(trackId)) {
+      return {
+        success: false,
+        message: 'Ya has desbloqueado la canción "No hay barro" anteriormente.',
+      };
+    }
+
+    const currentList = Array.isArray(economy.equippedPlaylist) ? economy.equippedPlaylist : [];
+    const nextList = currentList.includes(trackId) ? currentList : [...currentList, trackId];
+
+    const updated: PlayerEconomy = {
+      ...economy,
+      unlockedMusic: Array.from(new Set([...economy.unlockedMusic, trackId])),
+      equippedMusic: economy.equippedMusic || trackId,
+      equippedPlaylist: nextList,
+      redeemedCodes: Array.from(new Set([...economy.redeemedCodes, 'NAGUARO'])),
+    };
+
+    savePlayerEconomy(updated);
+    return {
+      success: true,
+      message: '🎉 ¡CÓDIGO SECRETO CANJEADO! Has desbloqueado "No hay barro" ("A Little Piece of Heaven" - Avenged Sevenfold).',
+      avatarUnlocked: trackId,
+    };
+  }
+
+  // Código secreto: kevingordo -> "Si feid fuera bueno"
+  if (
+    cleanCodeNoSpaces === 'kevingordo' ||
+    normalized === 'KEVINGORDO' ||
+    cleanCodeNoSpaces === 'sifeidfuerabueno'
+  ) {
+    const trackId = 'music_si_feid_fuera_bueno';
+    const economy = getPlayerEconomy();
+
+    if (economy.unlockedMusic.includes(trackId)) {
+      return {
+        success: false,
+        message: 'Ya has desbloqueado la canción "Si feid fuera bueno" anteriormente.',
+      };
+    }
+
+    const currentList = Array.isArray(economy.equippedPlaylist) ? economy.equippedPlaylist : [];
+    const nextList = currentList.includes(trackId) ? currentList : [...currentList, trackId];
+
+    const updated: PlayerEconomy = {
+      ...economy,
+      unlockedMusic: Array.from(new Set([...economy.unlockedMusic, trackId])),
+      equippedMusic: economy.equippedMusic || trackId,
+      equippedPlaylist: nextList,
+      redeemedCodes: Array.from(new Set([...economy.redeemedCodes, 'KEVINGORDO'])),
+    };
+
+    savePlayerEconomy(updated);
+    return {
+      success: true,
+      message: '🎉 ¡CÓDIGO SECRETO CANJEADO! Has desbloqueado "Si feid fuera bueno" ("Me Pongo Los Jeans De Mi Mamá" - sa!koro).',
+      avatarUnlocked: trackId,
     };
   }
 

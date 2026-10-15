@@ -104,7 +104,7 @@ describe('Sistema de Economía y Monedas (economy.ts)', () => {
   describe('Tienda y Compra de Recompensas', () => {
     it('incluye los avatares especiales en el catálogo con sus rarezas y rutas', () => {
       const avatarItems = SHOP_CATALOG.filter((i) => i.type === 'avatar');
-      expect(avatarItems).toHaveLength(4);
+      expect(avatarItems).toHaveLength(8);
 
       const patriaItem = SHOP_CATALOG.find((i) => i.id === 'avatar_patria_milagro');
       expect(patriaItem).toBeDefined();
@@ -124,6 +124,35 @@ describe('Sistema de Economía y Monedas (economy.ts)', () => {
       expect(jesusItem?.rarity).toBe('épico');
       expect(jesusItem?.price).toBe(1500);
 
+      // Nuevos avatares épicos con previsualización oculta
+      const elTigreItem = SHOP_CATALOG.find((i) => i.id === 'avatar_el_tigre');
+      expect(elTigreItem).toBeDefined();
+      expect(elTigreItem?.name).toBe('El tigre');
+      expect(elTigreItem?.rarity).toBe('épico');
+      expect(elTigreItem?.price).toBe(1500);
+      expect(elTigreItem?.hidePreview).toBe(true);
+
+      const proyectadaItem = SHOP_CATALOG.find((i) => i.id === 'avatar_proyectada_de_cuerpo');
+      expect(proyectadaItem).toBeDefined();
+      expect(proyectadaItem?.name).toBe('Proyectada de cuerpo');
+      expect(proyectadaItem?.rarity).toBe('épico');
+      expect(proyectadaItem?.price).toBe(1500);
+      expect(proyectadaItem?.hidePreview).toBe(true);
+
+      const uribeItem = SHOP_CATALOG.find((i) => i.id === 'avatar_uribe');
+      expect(uribeItem).toBeDefined();
+      expect(uribeItem?.name).toBe('Uribe');
+      expect(uribeItem?.rarity).toBe('épico');
+      expect(uribeItem?.price).toBe(1500);
+      expect(uribeItem?.hidePreview).toBe(true);
+
+      const winnieItem = SHOP_CATALOG.find((i) => i.id === 'avatar_winnie_pooh');
+      expect(winnieItem).toBeDefined();
+      expect(winnieItem?.name).toBe('winnie pooh');
+      expect(winnieItem?.rarity).toBe('épico');
+      expect(winnieItem?.price).toBe(1500);
+      expect(winnieItem?.hidePreview).toBe(true);
+
       const ninoBetunItem = SHOP_CATALOG.find((i) => i.id === 'avatar_nino_betun');
       expect(ninoBetunItem).toBeDefined();
       expect(ninoBetunItem?.name).toBe('Niño Betún');
@@ -131,21 +160,56 @@ describe('Sistema de Economía y Monedas (economy.ts)', () => {
       expect(ninoBetunItem?.codeOnly).toBe(true);
       expect(ninoBetunItem?.hidden).toBe(true);
 
-      // Los avatares públicos de la tienda solo muestran los 3 avatares visibles
+      // Los avatares públicos de la tienda muestran los 7 avatares no ocultos
       const visibleAvatars = SHOP_CATALOG.filter((i) => i.type === 'avatar' && !i.hidden);
-      expect(visibleAvatars).toHaveLength(3);
+      expect(visibleAvatars).toHaveLength(7);
 
-      // Incluye las pistas de música configuradas
+      // Incluye las pistas de música configuradas (públicas y secretas)
       const musicItems = SHOP_CATALOG.filter((i) => i.type === 'music');
-      expect(musicItems).toHaveLength(3);
+      expect(musicItems).toHaveLength(14);
 
       const musicaFisica = SHOP_CATALOG.find((i) => i.id === 'music_fisica_quimica');
-      expect(musicaFisica?.price).toBe(3500); // Más cara que patria milagro (2500)
+      expect(musicaFisica?.price).toBe(3500);
       expect(musicaFisica?.rarity).toBe('legendario');
 
       const musicaAura = SHOP_CATALOG.find((i) => i.id === 'music_aura');
-      expect(musicaAura?.price).toBe(2000); // Más cara que avatares épicos (1500)
+      expect(musicaAura?.price).toBe(2000);
       expect(musicaAura?.rarity).toBe('épico');
+
+      const musicaReyPop = SHOP_CATALOG.find((i) => i.id === 'music_rey_del_pop');
+      expect(musicaReyPop?.price).toBe(3500);
+      expect(musicaReyPop?.rarity).toBe('legendario');
+      expect(musicaReyPop?.value).toBe('3FIWJxOjLLk');
+
+      const musicaTutoriales = SHOP_CATALOG.find((i) => i.id === 'music_tutoriales');
+      expect(musicaTutoriales?.price).toBe(2000);
+      expect(musicaTutoriales?.rarity).toBe('épico');
+      expect(musicaTutoriales?.value).toBe('TW9d8vYrVFQ');
+
+      const musicaMichael = SHOP_CATALOG.find((i) => i.id === 'music_michael_jackson');
+      expect(musicaMichael?.price).toBe(2000);
+      expect(musicaMichael?.rarity).toBe('épico');
+      expect(musicaMichael?.value).toBe('TW9d8vYrVFQ');
+
+      const musicaMotivacion = SHOP_CATALOG.find((i) => i.id === 'music_motivacion_nueva_generacion');
+      expect(musicaMotivacion?.price).toBe(3500);
+      expect(musicaMotivacion?.rarity).toBe('legendario');
+      expect(musicaMotivacion?.value).toBe('qQ1CPE_pkJg');
+
+      const musicaPoliticos = SHOP_CATALOG.find((i) => i.id === 'music_politicos');
+      expect(musicaPoliticos?.price).toBe(3500);
+      expect(musicaPoliticos?.rarity).toBe('legendario');
+      expect(musicaPoliticos?.value).toBe('hcJ5WwGY3JI');
+
+      const musicaLamento = SHOP_CATALOG.find((i) => i.id === 'music_lamento');
+      expect(musicaLamento?.price).toBe(2000);
+      expect(musicaLamento?.rarity).toBe('épico');
+      expect(musicaLamento?.value).toBe('lYC5wlY8d6A');
+
+      const musicaAbelardo = SHOP_CATALOG.find((i) => i.id === 'music_fans_abelardo');
+      expect(musicaAbelardo?.price).toBe(2000);
+      expect(musicaAbelardo?.rarity).toBe('épico');
+      expect(musicaAbelardo?.value).toBe('5_dtgsbQlYg');
     });
 
     it('rechaza la compra si las monedas son insuficientes', () => {
@@ -318,6 +382,90 @@ describe('Sistema de Economía y Monedas (economy.ts)', () => {
       const res = redeemPromoCode('patriamilagro');
       expect(res.success).toBe(true);
       expect(res.avatarUnlocked).toBe('music_patria_milagro');
+    });
+
+    it('canjea el código Homero y desbloquea La canción que hizo temblar el arte moderno', () => {
+      savePlayerEconomy({
+        coins: 0,
+        victories: 0,
+        gamesPlayed: 0,
+        unlockedAvatars: [],
+        unlockedMusic: [],
+        equippedMusic: null,
+        equippedPlaylist: [],
+        redeemedCodes: [],
+      });
+      const res = redeemPromoCode('Homero');
+      expect(res.success).toBe(true);
+      expect(res.avatarUnlocked).toBe('music_arte_moderno_homero');
+
+      const updated = getPlayerEconomy();
+      expect(updated.unlockedMusic).toContain('music_arte_moderno_homero');
+      expect(updated.redeemedCodes).toContain('HOMERO');
+
+      // No permite canje duplicado
+      const resRepeat = redeemPromoCode('homero');
+      expect(resRepeat.success).toBe(false);
+    });
+
+    it('canjea el código paga?na (o pagana) y desbloquea Fiesta que nadie paga', () => {
+      savePlayerEconomy({
+        coins: 0,
+        victories: 0,
+        gamesPlayed: 0,
+        unlockedAvatars: [],
+        unlockedMusic: [],
+        equippedMusic: null,
+        equippedPlaylist: [],
+        redeemedCodes: [],
+      });
+      const res = redeemPromoCode('paga?na');
+      expect(res.success).toBe(true);
+      expect(res.avatarUnlocked).toBe('music_fiesta_nadie_paga');
+
+      const updated = getPlayerEconomy();
+      expect(updated.unlockedMusic).toContain('music_fiesta_nadie_paga');
+      expect(updated.redeemedCodes).toContain('PAGA?NA');
+    });
+
+    it('canjea el código naguaro y desbloquea No hay barro', () => {
+      savePlayerEconomy({
+        coins: 0,
+        victories: 0,
+        gamesPlayed: 0,
+        unlockedAvatars: [],
+        unlockedMusic: [],
+        equippedMusic: null,
+        equippedPlaylist: [],
+        redeemedCodes: [],
+      });
+      const res = redeemPromoCode('naguaro');
+      expect(res.success).toBe(true);
+      expect(res.avatarUnlocked).toBe('music_no_hay_barro');
+
+      const updated = getPlayerEconomy();
+      expect(updated.unlockedMusic).toContain('music_no_hay_barro');
+      expect(updated.redeemedCodes).toContain('NAGUARO');
+    });
+
+    it('canjea el código kevingordo y desbloquea Si feid fuera bueno', () => {
+      savePlayerEconomy({
+        coins: 0,
+        victories: 0,
+        gamesPlayed: 0,
+        unlockedAvatars: [],
+        unlockedMusic: [],
+        equippedMusic: null,
+        equippedPlaylist: [],
+        redeemedCodes: [],
+      });
+      const res = redeemPromoCode('kevingordo');
+      expect(res.success).toBe(true);
+      expect(res.avatarUnlocked).toBe('music_si_feid_fuera_bueno');
+
+      const updated = getPlayerEconomy();
+      expect(updated.unlockedMusic).toContain('music_si_feid_fuera_bueno');
+      expect(updated.redeemedCodes).toContain('KEVINGORDO');
     });
 
     it('rechaza códigos inválidos', () => {
