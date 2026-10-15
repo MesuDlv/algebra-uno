@@ -136,6 +136,8 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   volumeRef.current = volume;
 
   const lastAdvanceTimeRef = useRef<number>(0);
+  const lastCurrentTimeRef = useRef<number>(0);
+  const lastDurationRef = useRef<number>(0);
 
   // Envío de comandos al IFrame de YouTube mediante postMessage
   const sendCommand = useCallback((func: string, args: unknown[] = []) => {
@@ -200,6 +202,8 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const targetIndex = ((index % tracks.length) + tracks.length) % tracks.length;
       setCurrentTrackIndex(targetIndex);
       currentTrackIndexRef.current = targetIndex;
+      lastCurrentTimeRef.current = 0;
+      lastDurationRef.current = 0;
 
       const targetTrack = tracks[targetIndex];
       if (targetTrack) {
@@ -318,9 +322,14 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const updated = togglePlaylistTrack(trackId);
     setEconomyState(updated);
 
+    const newPlaylist = updated.equippedPlaylist || [];
+    const newActiveTracks = newPlaylist
+      .map((id) => allMusicTracks.find((t) => t.id === id))
+      .filter(Boolean) as ShopItem[];
+    activePlaylistTracksRef.current = newActiveTracks;
+
     const prevTracks = activePlaylistTracksRef.current;
     const currentItem = prevTracks[currentTrackIndexRef.current];
-    const newPlaylist = updated.equippedPlaylist || [];
 
     // Si la canción actual sigue en la nueva lista, mantenerse en ella
     if (currentItem && newPlaylist.includes(currentItem.id)) {
@@ -347,6 +356,13 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setPlaylist = (trackIds: string[]) => {
     const updated = setEconomyPlaylist(trackIds);
     setEconomyState(updated);
+
+    const newPlaylist = updated.equippedPlaylist || [];
+    const newActiveTracks = newPlaylist
+      .map((id) => allMusicTracks.find((t) => t.id === id))
+      .filter(Boolean) as ShopItem[];
+    activePlaylistTracksRef.current = newActiveTracks;
+
     setCurrentTrackIndex(0);
     currentTrackIndexRef.current = 0;
     if (updated.equippedPlaylist.length > 0 && isMusicEnabledRef.current) {
@@ -444,14 +460,39 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       }
 
-      // Verificación de fin de pista por duración y tiempo actual (respaldo si playerState: 0 no llega)
+      // Detección de progreso y fin de canción para videos normales y Shorts (ej. canción para políticos)
       if (
         data.info &&
         typeof data.info.currentTime === 'number' &&
-        typeof data.info.duration === 'number' &&
-        data.info.duration > 3
+        typeof data.info.duration === 'number'
       ) {
-        if (data.info.currentTime >= data.info.duration - 0.45) {
+        const currTime = data.info.currentTime;
+        const dur = data.info.duration;
+        const prevTime = lastCurrentTimeRef.current;
+        const prevDur = lastDurationRef.current || dur;
+
+        lastCurrentTimeRef.current = currTime;
+        lastDurationRef.current = dur;
+
+        // Detección 1: Fin natural de pista por aproximación a la duración (ventana de 1.2 segundos)
+        if (dur > 2) {
+          const timeLeft = dur - currTime;
+          if (timeLeft <= 1.2 || currTime >= dur - 1.2) {
+            triggerNextTrack();
+          }
+        }
+
+        // Detección 2: Salto hacia atrás / auto-bucle interno (caso específico de YouTube Shorts)
+        // Si el video ya había reproducido más del 40% (o más de 4s) y de repente el tiempo cae a menos de 2.5s:
+        // significa que YouTube reinició el video automáticamente en vez de emitir ended.
+        // Si hay más de 1 canción en cola, avanzamos de inmediato a la siguiente pista.
+        if (
+          activePlaylistTracksRef.current.length > 1 &&
+          prevDur > 2 &&
+          prevTime > 4 &&
+          prevTime >= prevDur * 0.4 &&
+          currTime < 2.5
+        ) {
           triggerNextTrack();
         }
       }
@@ -476,14 +517,17 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => window.removeEventListener('message', handleMessage);
   }, [sendListening, triggerNextTrack, sendCommand]);
 
-  // Mantener activo el handshake de postMessage cada 3 segundos mientras la música esté habilitada
+  // Sondeo activo de tiempo cada 400ms para atrapar con precisión el final de cualquier canción o Short
   useEffect(() => {
     if (!isMusicEnabled) return;
     const interval = setInterval(() => {
       sendListening();
-    }, 3000);
+      if (isPlaying) {
+        sendCommand('getCurrentTime');
+      }
+    }, 400);
     return () => clearInterval(interval);
-  }, [isMusicEnabled, sendListening]);
+  }, [isMusicEnabled, isPlaying, sendListening, sendCommand]);
 
   // Autoplay y desbloqueo de audio en móvil ante gestos del usuario
   useEffect(() => {
