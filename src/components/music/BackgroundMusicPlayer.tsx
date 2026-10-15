@@ -32,7 +32,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
 
   return (
     <div
-      className="fixed bottom-0 right-0 w-[1px] h-[1px] opacity-[0.01] pointer-events-none z-0 overflow-hidden"
+      className="fixed bottom-0 right-0 w-[200px] h-[120px] opacity-[0.001] pointer-events-none z-[-1] overflow-hidden"
       aria-hidden="true"
     >
       <iframe

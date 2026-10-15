@@ -20,6 +20,7 @@ export interface ShopItem {
   realTitle?: string; // Título real para pistas musicales (solo revelado al desbloquear)
   artist?: string; // Artista musical
   youtubeUrl?: string;
+  duration?: number; // Duración estimada en segundos para sincronización precisa de bucle
 }
 
 export interface PlayerEconomy {
@@ -210,6 +211,7 @@ export const SHOP_CATALOG: ShopItem[] = [
     realTitle: 'Amigo Ven Vamos a Israel',
     artist: 'ElPipiKiwi',
     youtubeUrl: 'https://youtube.com/shorts/hcJ5WwGY3JI?si=C8bGbwLDAEeD2THt',
+    duration: 15, // YouTube Short de exactamente 15 segundos
   },
   {
     id: 'music_lamento',
@@ -308,6 +310,28 @@ export const SHOP_CATALOG: ShopItem[] = [
     hidden: true,
   },
 ];
+
+/**
+ * Duraciones esperadas en segundos de pistas del catálogo.
+ * Permite que canciones y YouTube Shorts (como cancion para politicos de 15s)
+ * avancen de forma precisa y puntual sin depender exclusivamente de eventos externos.
+ */
+export const KNOWN_TRACK_DURATIONS: Record<string, number> = {
+  music_politicos: 15,
+  music_michael_jackson: 75,
+  music_aura: 90,
+  music_motivacion_nueva_generacion: 130,
+  music_si_feid_fuera_bueno: 145,
+  music_rey_del_pop: 171,
+  music_arte_moderno_homero: 180,
+  music_fans_abelardo: 215,
+  music_patria_milagro: 230,
+  music_lamento: 235,
+  music_tutoriales: 238,
+  music_fisica_quimica: 243,
+  music_fiesta_nadie_paga: 290,
+  music_no_hay_barro: 480,
+};
 
 const DEFAULT_ECONOMY: PlayerEconomy = {
   coins: 0,

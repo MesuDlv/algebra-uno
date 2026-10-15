@@ -14,6 +14,7 @@ import {
   formatCoins,
   isMobileDevice,
   getEffectiveTrackValue,
+  KNOWN_TRACK_DURATIONS,
 } from '../economy';
 
 // Mock in-memory localStorage for node test runner
@@ -200,6 +201,8 @@ describe('Sistema de Economía y Monedas (economy.ts)', () => {
       expect(musicaPoliticos?.price).toBe(3500);
       expect(musicaPoliticos?.rarity).toBe('legendario');
       expect(musicaPoliticos?.value).toBe('hcJ5WwGY3JI');
+      expect(musicaPoliticos?.duration).toBe(15);
+      expect(KNOWN_TRACK_DURATIONS['music_politicos']).toBe(15);
 
       const musicaLamento = SHOP_CATALOG.find((i) => i.id === 'music_lamento');
       expect(musicaLamento?.price).toBe(2000);

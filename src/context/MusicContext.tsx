@@ -7,6 +7,7 @@ import {
   SHOP_CATALOG,
   ShopItem,
   getEffectiveTrackValue,
+  KNOWN_TRACK_DURATIONS,
 } from '../utils/economy';
 
 const MUSIC_ENABLED_KEY = 'algebra_uno_music_enabled';
@@ -135,9 +136,15 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const volumeRef = useRef<number>(volume);
   volumeRef.current = volume;
 
+  const isPlayingRef = useRef<boolean>(isPlaying);
+  isPlayingRef.current = isPlaying;
+
   const lastAdvanceTimeRef = useRef<number>(0);
   const lastCurrentTimeRef = useRef<number>(0);
   const lastDurationRef = useRef<number>(0);
+  const dynamicDurationsRef = useRef<Record<string, number>>({});
+  const trackStartTimeRef = useRef<number>(Date.now());
+  const pauseStartTimeRef = useRef<number>(0);
 
   // Envío de comandos al IFrame de YouTube mediante postMessage
   const sendCommand = useCallback((func: string, args: unknown[] = []) => {
@@ -172,22 +179,43 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, []);
 
+  // Obtiene la duración esperada en segundos para una pista dada
+  const getExpectedDuration = useCallback((track: ShopItem | null): number => {
+    if (!track) return 0;
+    if (track.duration && track.duration > 0) return track.duration;
+    if (KNOWN_TRACK_DURATIONS[track.id]) return KNOWN_TRACK_DURATIONS[track.id];
+    if (dynamicDurationsRef.current[track.id]) return dynamicDurationsRef.current[track.id];
+    if (lastDurationRef.current > 0) return lastDurationRef.current;
+    return 0;
+  }, []);
+
   const playMusic = useCallback(() => {
     if (!equippedTrack) return;
+    if (pauseStartTimeRef.current > 0) {
+      const pausedDuration = Date.now() - pauseStartTimeRef.current;
+      trackStartTimeRef.current += pausedDuration;
+      pauseStartTimeRef.current = 0;
+    }
     sendListening();
     sendCommand('unMute');
     sendCommand('setVolume', [volumeRef.current]);
     sendCommand('playVideo');
     setIsPlaying(true);
+    isPlayingRef.current = true;
   }, [equippedTrack, sendCommand, sendListening]);
 
   const pauseMusic = useCallback(() => {
+    pauseStartTimeRef.current = Date.now();
     sendCommand('pauseVideo');
     setIsPlaying(false);
+    isPlayingRef.current = false;
   }, [sendCommand]);
 
   const restartMusic = useCallback(() => {
     if (!equippedTrack) return;
+    trackStartTimeRef.current = Date.now();
+    pauseStartTimeRef.current = 0;
+    lastCurrentTimeRef.current = 0;
     sendCommand('seekTo', [0, true]);
     if (isMusicEnabledRef.current) {
       playMusic();
@@ -204,6 +232,8 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       currentTrackIndexRef.current = targetIndex;
       lastCurrentTimeRef.current = 0;
       lastDurationRef.current = 0;
+      trackStartTimeRef.current = Date.now();
+      pauseStartTimeRef.current = 0;
 
       const targetTrack = tracks[targetIndex];
       if (targetTrack) {
@@ -214,10 +244,12 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (vidId) {
           sendListening();
           sendCommand('loadVideoById', [vidId, 0]);
+          sendCommand('loadVideoById', [{ videoId: vidId, startSeconds: 0 }]);
           sendCommand('unMute');
           sendCommand('setVolume', [volumeRef.current]);
           sendCommand('playVideo');
           setIsPlaying(true);
+          isPlayingRef.current = true;
         }
       }
     },
@@ -230,11 +262,15 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (tracks.length === 0) return;
     if (tracks.length === 1) {
       // Si hay 1 sola pista seleccionada, reinicia desde el segundo 0 en bucle continuo
+      trackStartTimeRef.current = Date.now();
+      pauseStartTimeRef.current = 0;
+      lastCurrentTimeRef.current = 0;
       sendCommand('seekTo', [0, true]);
       sendCommand('unMute');
       sendCommand('setVolume', [volumeRef.current]);
       sendCommand('playVideo');
       setIsPlaying(true);
+      isPlayingRef.current = true;
       return;
     }
     const nextIdx = (currentTrackIndexRef.current + 1) % tracks.length;
@@ -246,21 +282,25 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const tracks = activePlaylistTracksRef.current;
     if (tracks.length === 0) return;
     if (tracks.length === 1) {
+      trackStartTimeRef.current = Date.now();
+      pauseStartTimeRef.current = 0;
+      lastCurrentTimeRef.current = 0;
       sendCommand('seekTo', [0, true]);
       sendCommand('unMute');
       sendCommand('setVolume', [volumeRef.current]);
       sendCommand('playVideo');
       setIsPlaying(true);
+      isPlayingRef.current = true;
       return;
     }
     const prevIdx = (currentTrackIndexRef.current - 1 + tracks.length) % tracks.length;
     playTrackAtIndex(prevIdx);
   }, [playTrackAtIndex, sendCommand]);
 
-  // Disparo de transición con cooldown anti-rebote (mínimo 1.5s entre avances para evitar saltos dobles)
+  // Disparo de transición con cooldown anti-rebote (mínimo 1.8s entre avances para evitar saltos dobles)
   const triggerNextTrack = useCallback(() => {
     const now = Date.now();
-    if (now - lastAdvanceTimeRef.current < 1500) {
+    if (now - lastAdvanceTimeRef.current < 1800) {
       return;
     }
     lastAdvanceTimeRef.current = now;
@@ -434,11 +474,14 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (typeof playerState !== 'undefined') {
         if (playerState === 1) {
           setIsPlaying(true);
+          isPlayingRef.current = true;
         } else if (playerState === 2) {
           setIsPlaying(false);
+          isPlayingRef.current = false;
         } else if (playerState === 0) {
           // ¡La canción terminó! Pasar a la siguiente en bucle
           setIsPlaying(false);
+          isPlayingRef.current = false;
           triggerNextTrack();
         }
       }
@@ -457,41 +500,43 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (matchIdx !== -1 && matchIdx !== currentTrackIndexRef.current) {
           setCurrentTrackIndex(matchIdx);
           currentTrackIndexRef.current = matchIdx;
+          trackStartTimeRef.current = Date.now();
+          pauseStartTimeRef.current = 0;
+          lastCurrentTimeRef.current = 0;
         }
       }
 
-      // Detección de progreso y fin de canción para videos normales y Shorts (ej. canción para políticos)
-      if (
-        data.info &&
-        typeof data.info.currentTime === 'number' &&
-        typeof data.info.duration === 'number'
-      ) {
+      // 1. Guardar duración si viene en el evento (incluso si no viene currentTime en este mensaje)
+      if (data.info && typeof data.info.duration === 'number' && data.info.duration > 0) {
+        lastDurationRef.current = data.info.duration;
+        const curTrack = activePlaylistTracksRef.current[currentTrackIndexRef.current];
+        if (curTrack) {
+          dynamicDurationsRef.current[curTrack.id] = data.info.duration;
+        }
+      }
+
+      // 2. Comprobar currentTime reportado por YouTube
+      if (data.info && typeof data.info.currentTime === 'number') {
         const currTime = data.info.currentTime;
-        const dur = data.info.duration;
         const prevTime = lastCurrentTimeRef.current;
-        const prevDur = lastDurationRef.current || dur;
-
         lastCurrentTimeRef.current = currTime;
-        lastDurationRef.current = dur;
 
-        // Detección 1: Fin natural de pista por aproximación a la duración (ventana de 1.2 segundos)
-        if (dur > 2) {
-          const timeLeft = dur - currTime;
-          if (timeLeft <= 1.2 || currTime >= dur - 1.2) {
-            triggerNextTrack();
-          }
+        const tracks = activePlaylistTracksRef.current;
+        const curTrack = tracks[currentTrackIndexRef.current];
+        const dur = getExpectedDuration(curTrack);
+
+        // Detección 1: Fin natural por aproximación a la duración (ventana de 1.2 segundos)
+        if (dur > 2 && currTime >= dur - 1.2) {
+          triggerNextTrack();
         }
 
-        // Detección 2: Salto hacia atrás / auto-bucle interno (caso específico de YouTube Shorts)
-        // Si el video ya había reproducido más del 40% (o más de 4s) y de repente el tiempo cae a menos de 2.5s:
-        // significa que YouTube reinició el video automáticamente en vez de emitir ended.
-        // Si hay más de 1 canción en cola, avanzamos de inmediato a la siguiente pista.
+        // Detección 2: Salto hacia atrás / auto-bucle interno de YouTube Shorts
+        // Si el video ya había reproducido al menos 4 segundos y repentinamente retrocede a menos de 3s:
         if (
-          activePlaylistTracksRef.current.length > 1 &&
-          prevDur > 2 &&
-          prevTime > 4 &&
-          prevTime >= prevDur * 0.4 &&
-          currTime < 2.5
+          tracks.length > 1 &&
+          prevTime >= 4 &&
+          currTime < 3 &&
+          currTime < prevTime - 2
         ) {
           triggerNextTrack();
         }
@@ -515,19 +560,38 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [sendListening, triggerNextTrack, sendCommand]);
+  }, [sendListening, triggerNextTrack, sendCommand, getExpectedDuration]);
 
-  // Sondeo activo de tiempo cada 400ms para atrapar con precisión el final de cualquier canción o Short
+  // Temporizador activo en tiempo real (cada 250ms):
+  // 1. Mantiene el handshake postMessage activo con YouTube ('listening').
+  // 2. Control de tiempo transcurrido (wall-clock): Si la canción alcanza su duración esperada
+  //    (ej. 15 segundos para 'canción para políticos'), avanza automáticamente sin depender
+  //    exclusivamente de los eventos de YouTube.
   useEffect(() => {
     if (!isMusicEnabled) return;
     const interval = setInterval(() => {
       sendListening();
-      if (isPlaying) {
-        sendCommand('getCurrentTime');
+
+      if (!isPlayingRef.current) return;
+
+      const tracks = activePlaylistTracksRef.current;
+      if (tracks.length === 0) return;
+
+      const curTrack = tracks[currentTrackIndexRef.current];
+      if (!curTrack) return;
+
+      const expectedDur = getExpectedDuration(curTrack);
+
+      if (expectedDur > 2) {
+        const elapsed = (Date.now() - trackStartTimeRef.current) / 1000;
+        // Si el tiempo transcurrido en el reloj real supera la duración esperada menos margen de 0.5s:
+        if (elapsed >= expectedDur - 0.5) {
+          triggerNextTrack();
+        }
       }
-    }, 400);
+    }, 250);
     return () => clearInterval(interval);
-  }, [isMusicEnabled, isPlaying, sendListening, sendCommand]);
+  }, [isMusicEnabled, sendListening, getExpectedDuration, triggerNextTrack]);
 
   // Autoplay y desbloqueo de audio en móvil ante gestos del usuario
   useEffect(() => {
