@@ -24,6 +24,7 @@ export interface MusicContextType {
   restartMusic: () => void;
   nextTrack: () => void;
   prevTrack: () => void;
+  playTrackAtIndex: (index: number) => void;
   isSettingsOpen: boolean;
   setIsSettingsOpen: (open: boolean) => void;
   openSettings: () => void;
@@ -37,6 +38,7 @@ export interface MusicContextType {
   effectiveVideoId: string;
   equippedPlaylist: string[];
   activePlaylistTracks: ShopItem[];
+  forceFallbackTrackIds: string[];
   currentTrackIndex: number;
   equipTrack: (trackId: string | null) => void;
   toggleTrackInPlaylist: (trackId: string) => void;
@@ -117,6 +119,24 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     ? getEffectiveTrackValue(equippedTrack, forceFallbackTrackIds.includes(equippedTrack.id))
     : '';
 
+  // Referencias mutables para evitar cierres obsoletos (stale closures) en manejadores asíncronos
+  const activePlaylistTracksRef = useRef<ShopItem[]>(activePlaylistTracks);
+  activePlaylistTracksRef.current = activePlaylistTracks;
+
+  const currentTrackIndexRef = useRef<number>(clampedIndex);
+  currentTrackIndexRef.current = clampedIndex;
+
+  const forceFallbackTrackIdsRef = useRef<string[]>(forceFallbackTrackIds);
+  forceFallbackTrackIdsRef.current = forceFallbackTrackIds;
+
+  const isMusicEnabledRef = useRef<boolean>(isMusicEnabled);
+  isMusicEnabledRef.current = isMusicEnabled;
+
+  const volumeRef = useRef<number>(volume);
+  volumeRef.current = volume;
+
+  const lastAdvanceTimeRef = useRef<number>(0);
+
   // Envío de comandos al IFrame de YouTube mediante postMessage
   const sendCommand = useCallback((func: string, args: unknown[] = []) => {
     if (!iframeRef.current || !iframeRef.current.contentWindow) return;
@@ -134,13 +154,30 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, []);
 
+  // Handshake fundamental para que YouTube active el envío de mensajes de estado (infoDelivery / onStateChange)
+  const sendListening = useCallback(() => {
+    if (!iframeRef.current || !iframeRef.current.contentWindow) return;
+    try {
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({
+          event: 'listening',
+          id: iframeRef.current.id || 'algebra-uno-bg-music-iframe',
+        }),
+        '*'
+      );
+    } catch {
+      // Ignorar restricciones
+    }
+  }, []);
+
   const playMusic = useCallback(() => {
     if (!equippedTrack) return;
+    sendListening();
     sendCommand('unMute');
-    sendCommand('setVolume', [volume]);
+    sendCommand('setVolume', [volumeRef.current]);
     sendCommand('playVideo');
     setIsPlaying(true);
-  }, [equippedTrack, volume, sendCommand]);
+  }, [equippedTrack, sendCommand, sendListening]);
 
   const pauseMusic = useCallback(() => {
     sendCommand('pauseVideo');
@@ -150,36 +187,81 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const restartMusic = useCallback(() => {
     if (!equippedTrack) return;
     sendCommand('seekTo', [0, true]);
-    if (isMusicEnabled) {
+    if (isMusicEnabledRef.current) {
       playMusic();
     }
-  }, [equippedTrack, isMusicEnabled, playMusic, sendCommand]);
+  }, [equippedTrack, playMusic, sendCommand]);
 
-  // Avanza a la siguiente canción del bucle (o reinicia si es solo 1)
+  // Reproduce una pista específica por índice sin recargar el iframe del DOM
+  const playTrackAtIndex = useCallback(
+    (index: number) => {
+      const tracks = activePlaylistTracksRef.current;
+      if (tracks.length === 0) return;
+      const targetIndex = ((index % tracks.length) + tracks.length) % tracks.length;
+      setCurrentTrackIndex(targetIndex);
+      currentTrackIndexRef.current = targetIndex;
+
+      const targetTrack = tracks[targetIndex];
+      if (targetTrack) {
+        const vidId = getEffectiveTrackValue(
+          targetTrack,
+          forceFallbackTrackIdsRef.current.includes(targetTrack.id)
+        );
+        if (vidId) {
+          sendListening();
+          sendCommand('loadVideoById', [vidId, 0]);
+          sendCommand('unMute');
+          sendCommand('setVolume', [volumeRef.current]);
+          sendCommand('playVideo');
+          setIsPlaying(true);
+        }
+      }
+    },
+    [sendCommand, sendListening]
+  );
+
+  // Avanza a la siguiente canción del bucle (o reinicia si es solo 1 canción)
   const nextTrack = useCallback(() => {
-    if (activePlaylistTracks.length === 0) return;
-    if (activePlaylistTracks.length === 1) {
+    const tracks = activePlaylistTracksRef.current;
+    if (tracks.length === 0) return;
+    if (tracks.length === 1) {
+      // Si hay 1 sola pista seleccionada, reinicia desde el segundo 0 en bucle continuo
       sendCommand('seekTo', [0, true]);
+      sendCommand('unMute');
+      sendCommand('setVolume', [volumeRef.current]);
       sendCommand('playVideo');
       setIsPlaying(true);
       return;
     }
-    const nextIdx = (clampedIndex + 1) % activePlaylistTracks.length;
-    setCurrentTrackIndex(nextIdx);
-  }, [activePlaylistTracks.length, clampedIndex, sendCommand]);
+    const nextIdx = (currentTrackIndexRef.current + 1) % tracks.length;
+    playTrackAtIndex(nextIdx);
+  }, [playTrackAtIndex, sendCommand]);
 
   // Retrocede a la canción anterior del bucle
   const prevTrack = useCallback(() => {
-    if (activePlaylistTracks.length === 0) return;
-    if (activePlaylistTracks.length === 1) {
+    const tracks = activePlaylistTracksRef.current;
+    if (tracks.length === 0) return;
+    if (tracks.length === 1) {
       sendCommand('seekTo', [0, true]);
+      sendCommand('unMute');
+      sendCommand('setVolume', [volumeRef.current]);
       sendCommand('playVideo');
       setIsPlaying(true);
       return;
     }
-    const prevIdx = (clampedIndex - 1 + activePlaylistTracks.length) % activePlaylistTracks.length;
-    setCurrentTrackIndex(prevIdx);
-  }, [activePlaylistTracks.length, clampedIndex, sendCommand]);
+    const prevIdx = (currentTrackIndexRef.current - 1 + tracks.length) % tracks.length;
+    playTrackAtIndex(prevIdx);
+  }, [playTrackAtIndex, sendCommand]);
+
+  // Disparo de transición con cooldown anti-rebote (mínimo 1.5s entre avances para evitar saltos dobles)
+  const triggerNextTrack = useCallback(() => {
+    const now = Date.now();
+    if (now - lastAdvanceTimeRef.current < 1500) {
+      return;
+    }
+    lastAdvanceTimeRef.current = now;
+    nextTrack();
+  }, [nextTrack]);
 
   const setMusicEnabled = (enabled: boolean) => {
     setIsMusicEnabledState(enabled);
@@ -221,10 +303,11 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const updated = equipMusic(trackId);
     setEconomyState(updated);
     setCurrentTrackIndex(0);
-    if (trackId && isMusicEnabled) {
+    currentTrackIndexRef.current = 0;
+    if (trackId && isMusicEnabledRef.current) {
       setTimeout(() => {
-        playMusic();
-      }, 300);
+        playTrackAtIndex(0);
+      }, 100);
     } else if (!trackId) {
       pauseMusic();
     }
@@ -234,13 +317,29 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const toggleTrackInPlaylist = (trackId: string) => {
     const updated = togglePlaylistTrack(trackId);
     setEconomyState(updated);
-    setCurrentTrackIndex(0);
-    if (updated.equippedPlaylist.length > 0 && isMusicEnabled) {
-      setTimeout(() => {
-        playMusic();
-      }, 300);
-    } else if (updated.equippedPlaylist.length === 0) {
-      pauseMusic();
+
+    const prevTracks = activePlaylistTracksRef.current;
+    const currentItem = prevTracks[currentTrackIndexRef.current];
+    const newPlaylist = updated.equippedPlaylist || [];
+
+    // Si la canción actual sigue en la nueva lista, mantenerse en ella
+    if (currentItem && newPlaylist.includes(currentItem.id)) {
+      const newIdx = newPlaylist.indexOf(currentItem.id);
+      if (newIdx !== -1) {
+        setCurrentTrackIndex(newIdx);
+        currentTrackIndexRef.current = newIdx;
+      }
+    } else {
+      // Si la canción actual fue desactivada, reproducir la primera de las que quedan
+      setCurrentTrackIndex(0);
+      currentTrackIndexRef.current = 0;
+      if (newPlaylist.length > 0 && isMusicEnabledRef.current) {
+        setTimeout(() => {
+          playTrackAtIndex(0);
+        }, 100);
+      } else if (newPlaylist.length === 0) {
+        pauseMusic();
+      }
     }
   };
 
@@ -249,10 +348,11 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const updated = setEconomyPlaylist(trackIds);
     setEconomyState(updated);
     setCurrentTrackIndex(0);
-    if (updated.equippedPlaylist.length > 0 && isMusicEnabled) {
+    currentTrackIndexRef.current = 0;
+    if (updated.equippedPlaylist.length > 0 && isMusicEnabledRef.current) {
       setTimeout(() => {
-        playMusic();
-      }, 300);
+        playTrackAtIndex(0);
+      }, 100);
     } else {
       pauseMusic();
     }
@@ -269,62 +369,121 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Disparado cuando el iframe de YouTube termina de cargar en el DOM
   const handleIframeLoad = useCallback(() => {
-    if (!isMusicEnabled || !equippedTrack) return;
+    sendListening();
+    if (!isMusicEnabledRef.current || !equippedTrack) return;
     const triggerPlay = () => {
+      sendListening();
       sendCommand('unMute');
-      sendCommand('setVolume', [volume]);
+      sendCommand('setVolume', [volumeRef.current]);
       sendCommand('playVideo');
     };
-    setTimeout(triggerPlay, 350);
-    setTimeout(triggerPlay, 900);
-  }, [isMusicEnabled, equippedTrack, volume, sendCommand]);
+    setTimeout(triggerPlay, 250);
+    setTimeout(triggerPlay, 750);
+    setTimeout(triggerPlay, 1500);
+  }, [equippedTrack, sendCommand, sendListening]);
 
-  // Escuchar mensajes de estado de YouTube IFrame API
+  // Escuchar mensajes de estado de YouTube IFrame API (infoDelivery, onStateChange, etc.)
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (typeof event.data === 'string') {
+      let data = event.data;
+      if (typeof data === 'string') {
         try {
-          const data = JSON.parse(event.data);
-
-          // Estado del reproductor de YouTube:
-          // -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
-          if (data.event === 'infoDelivery' && data.info) {
-            const playerState = data.info.playerState;
-            if (typeof playerState !== 'undefined') {
-              if (playerState === 1) {
-                setIsPlaying(true);
-              } else if (playerState === 2) {
-                setIsPlaying(false);
-              } else if (playerState === 0) {
-                // ¡La canción terminó! Pasar a la siguiente en bucle
-                setIsPlaying(false);
-                nextTrack();
-              }
-            }
-          }
-
-          // Detección de error de reproducción en YouTube (ej. restricciones de embebido móvil o video no disponible)
-          if (data.event === 'onError' || (data.info && typeof data.info.error !== 'undefined')) {
-            console.warn('YouTube IFrame reportó restricción o error para la pista actual:', data);
-            if (
-              equippedTrack &&
-              equippedTrack.mobileValue &&
-              !forceFallbackTrackIds.includes(equippedTrack.id)
-            ) {
-              setForceFallbackTrackIds((prev) => [...prev, equippedTrack.id]);
-            } else {
-              nextTrack();
-            }
-          }
+          data = JSON.parse(data);
         } catch {
-          // Ignorar mensajes ajenos a JSON de YouTube
+          return;
+        }
+      }
+      if (!data || typeof data !== 'object') return;
+
+      // Respaldo de handshake al recibir eventos de inicio
+      if (data.event === 'initialDelivery' || data.event === 'onReady') {
+        sendListening();
+      }
+
+      // Estado del reproductor de YouTube:
+      // -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
+      let playerState: number | undefined;
+      if (data.event === 'infoDelivery' && data.info && typeof data.info.playerState !== 'undefined') {
+        playerState = Number(data.info.playerState);
+      } else if (data.event === 'onStateChange') {
+        if (typeof data.info === 'number') {
+          playerState = data.info;
+        } else if (typeof data.data === 'number') {
+          playerState = data.data;
+        } else if (data.info && typeof data.info.playerState !== 'undefined') {
+          playerState = Number(data.info.playerState);
+        }
+      }
+
+      if (typeof playerState !== 'undefined') {
+        if (playerState === 1) {
+          setIsPlaying(true);
+        } else if (playerState === 2) {
+          setIsPlaying(false);
+        } else if (playerState === 0) {
+          // ¡La canción terminó! Pasar a la siguiente en bucle
+          setIsPlaying(false);
+          triggerNextTrack();
+        }
+      }
+
+      // Si YouTube embebido cambia de video por su cola interna, sincronizar el índice de la playlist
+      if (data.info?.videoData?.video_id) {
+        const currentYtVid = data.info.videoData.video_id;
+        const tracks = activePlaylistTracksRef.current;
+        const matchIdx = tracks.findIndex((t) => {
+          const v = getEffectiveTrackValue(
+            t,
+            forceFallbackTrackIdsRef.current.includes(t.id)
+          );
+          return v === currentYtVid || t.value === currentYtVid || (t.mobileValue && t.mobileValue === currentYtVid);
+        });
+        if (matchIdx !== -1 && matchIdx !== currentTrackIndexRef.current) {
+          setCurrentTrackIndex(matchIdx);
+          currentTrackIndexRef.current = matchIdx;
+        }
+      }
+
+      // Verificación de fin de pista por duración y tiempo actual (respaldo si playerState: 0 no llega)
+      if (
+        data.info &&
+        typeof data.info.currentTime === 'number' &&
+        typeof data.info.duration === 'number' &&
+        data.info.duration > 3
+      ) {
+        if (data.info.currentTime >= data.info.duration - 0.45) {
+          triggerNextTrack();
+        }
+      }
+
+      // Detección de error de reproducción en YouTube (ej. restricciones de embebido o video bloqueado)
+      if (data.event === 'onError' || (data.info && typeof data.info.error !== 'undefined')) {
+        console.warn('YouTube IFrame reportó restricción o error para la pista actual:', data);
+        const tracks = activePlaylistTracksRef.current;
+        const curIdx = currentTrackIndexRef.current;
+        const track = tracks[curIdx];
+        if (track && track.mobileValue && !forceFallbackTrackIdsRef.current.includes(track.id)) {
+          setForceFallbackTrackIds((prev) => [...prev, track.id]);
+          sendCommand('loadVideoById', [track.mobileValue, 0]);
+          sendCommand('playVideo');
+        } else {
+          triggerNextTrack();
         }
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [nextTrack, equippedTrack, forceFallbackTrackIds]);
+  }, [sendListening, triggerNextTrack, sendCommand]);
+
+  // Mantener activo el handshake de postMessage cada 3 segundos mientras la música esté habilitada
+  useEffect(() => {
+    if (!isMusicEnabled) return;
+    const interval = setInterval(() => {
+      sendListening();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isMusicEnabled, sendListening]);
 
   // Autoplay y desbloqueo de audio en móvil ante gestos del usuario
   useEffect(() => {
@@ -332,8 +491,9 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const handleUserGesture = () => {
       if (!isPlaying) {
+        sendListening();
         sendCommand('unMute');
-        sendCommand('setVolume', [volume]);
+        sendCommand('setVolume', [volumeRef.current]);
         sendCommand('playVideo');
       }
     };
@@ -347,7 +507,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       window.removeEventListener('touchstart', handleUserGesture);
       window.removeEventListener('keydown', handleUserGesture);
     };
-  }, [isMusicEnabled, equippedTrack, isPlaying, volume, sendCommand]);
+  }, [isMusicEnabled, equippedTrack, isPlaying, sendCommand, sendListening]);
 
   return (
     <MusicContext.Provider
@@ -363,6 +523,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         restartMusic,
         nextTrack,
         prevTrack,
+        playTrackAtIndex,
         isSettingsOpen,
         setIsSettingsOpen,
         openSettings,
@@ -376,6 +537,7 @@ export const MusicProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         effectiveVideoId,
         equippedPlaylist: equippedPlaylistIds,
         activePlaylistTracks,
+        forceFallbackTrackIds,
         currentTrackIndex: clampedIndex,
         equipTrack,
         toggleTrackInPlaylist,

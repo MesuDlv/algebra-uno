@@ -17,6 +17,7 @@ import { triggerHaptic } from '../utils/haptics';
 import { LogOut, BookOpen, Clock, Volume2, VolumeX, Eye } from 'lucide-react';
 import { ShopModal } from '../components/shop/ShopModal';
 import { AvatarDisplay } from '../components/common/AvatarDisplay';
+import { SettingsButton } from '../components/common/SettingsButton';
 
 interface GamePageProps {
   roomId: string;
@@ -678,8 +679,8 @@ export const GamePage: React.FC<GamePageProps> = ({
       </AnimatePresence>
 
       {/* Barra superior de la mesa */}
-      <header className="w-full flex items-center justify-between px-2.5 sm:px-4 lg:px-6 pt-[max(0.6rem,env(safe-area-inset-top))] pb-1.5 sm:pb-2 z-30 bg-black/60 backdrop-blur-md border-b border-white/10 flex-shrink-0 pr-14 sm:pr-16">
-        <div className="flex items-center gap-2 sm:gap-2.5">
+      <header className="w-full flex items-center justify-between px-2.5 sm:px-4 lg:px-6 pt-[max(0.6rem,env(safe-area-inset-top))] pb-1.5 sm:pb-2 z-30 bg-black/60 backdrop-blur-md border-b border-white/10 flex-shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             onClick={() => setShowExitModal(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-950/70 hover:bg-red-900 border border-red-500/50 text-red-100 hover:text-white text-xs font-bold cursor-pointer transition touch-manipulation active:scale-95 shadow-sm"
@@ -701,6 +702,9 @@ export const GamePage: React.FC<GamePageProps> = ({
               <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400" />
             )}
           </button>
+
+          {/* Botón de Configuración y Música integrado en la barra de controles durante la partida */}
+          <SettingsButton variant="header" />
         </div>
 
         {/* Indicador de Turno o Modo Espectador */}
@@ -736,8 +740,8 @@ export const GamePage: React.FC<GamePageProps> = ({
           )}
         </div>
 
-        {/* Info Sala */}
-        <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-amber-200/90">
+        {/* Info Sala (Libro) */}
+        <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-semibold text-amber-200/90 flex-shrink-0">
           <BookOpen className="w-3.5 h-3.5 text-emerald-300" />
           <span className="hidden sm:inline">Sala: {roomId}</span>
         </div>

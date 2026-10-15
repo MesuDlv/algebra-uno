@@ -115,8 +115,8 @@ function MainApp() {
       {/* Reproductor de Música de Fondo (YouTube IFrame) */}
       <BackgroundMusicPlayer />
 
-      {/* Botón flotante de Configuración y Música en esquina */}
-      <SettingsButton />
+      {/* Botón flotante de Configuración y Música en esquina (activo en Lobby, Sala de Espera y Galería) */}
+      {view !== 'game' && <SettingsButton variant="floating" />}
 
       {/* Modal de Configuración */}
       <SettingsModal isOpen={isSettingsOpen} onClose={closeSettings} />
