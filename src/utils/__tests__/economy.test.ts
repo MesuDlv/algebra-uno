@@ -137,11 +137,11 @@ describe('Sistema de Economía y Monedas (economy.ts)', () => {
       expect(proyectadaItem?.name).toBe('Proyectada de cuerpo');
       expect(proyectadaItem?.rarity).toBe('épico');
       expect(proyectadaItem?.price).toBe(1500);
-      expect(proyectadaItem?.hidePreview).toBe(true);
+      expect(proyectadaItem?.hidePreview).toBeFalsy();
 
       const uribeItem = SHOP_CATALOG.find((i) => i.id === 'avatar_uribe');
       expect(uribeItem).toBeDefined();
-      expect(uribeItem?.name).toBe('Uribe');
+      expect(uribeItem?.name).toBe('El mejor presidente de colombia');
       expect(uribeItem?.rarity).toBe('épico');
       expect(uribeItem?.price).toBe(1500);
       expect(uribeItem?.hidePreview).toBe(true);
@@ -179,7 +179,7 @@ describe('Sistema de Economía y Monedas (economy.ts)', () => {
       const musicaReyPop = SHOP_CATALOG.find((i) => i.id === 'music_rey_del_pop');
       expect(musicaReyPop?.price).toBe(3500);
       expect(musicaReyPop?.rarity).toBe('legendario');
-      expect(musicaReyPop?.value).toBe('3FIWJxOjLLk');
+      expect(musicaReyPop?.value).toBe('CPK_IdHe1Yg');
 
       const musicaTutoriales = SHOP_CATALOG.find((i) => i.id === 'music_tutoriales');
       expect(musicaTutoriales?.price).toBe(2000);
@@ -189,7 +189,7 @@ describe('Sistema de Economía y Monedas (economy.ts)', () => {
       const musicaMichael = SHOP_CATALOG.find((i) => i.id === 'music_michael_jackson');
       expect(musicaMichael?.price).toBe(2000);
       expect(musicaMichael?.rarity).toBe('épico');
-      expect(musicaMichael?.value).toBe('TW9d8vYrVFQ');
+      expect(musicaMichael?.value).toBe('jAbWrr7njy8');
 
       const musicaMotivacion = SHOP_CATALOG.find((i) => i.id === 'music_motivacion_nueva_generacion');
       expect(musicaMotivacion?.price).toBe(3500);
