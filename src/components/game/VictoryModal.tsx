@@ -9,6 +9,10 @@ import {
   Coins,
   ShoppingBag,
   Medal,
+  TrendingUp,
+  Brain,
+  CheckCircle2,
+  Lock,
 } from 'lucide-react';
 import { soundEffects } from '../../utils/audio';
 import { PlayerState } from '../../types/game';
@@ -33,6 +37,10 @@ interface VictoryModalProps {
   onRequestRematch: () => void;
   onExit: () => void;
   onOpenShop?: () => void;
+  onOpenGameReview?: () => void;
+  onOpenQuiz?: () => void;
+  hasCompletedQuiz?: boolean;
+  quizCoinsEarned?: number;
 }
 
 export const VictoryModal: React.FC<VictoryModalProps> = ({
@@ -46,6 +54,10 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   onRequestRematch,
   onExit,
   onOpenShop,
+  onOpenGameReview,
+  onOpenQuiz,
+  hasCompletedQuiz = false,
+  quizCoinsEarned = 0,
 }) => {
   const [rankings, setRankings] = useState<MatchPlayerResult[]>([]);
   const [earnedCoins, setEarnedCoins] = useState<number>(0);
@@ -101,8 +113,6 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     }
   }, [isOpen, players, winnerUid, currentUserUid]);
 
-  if (!isOpen) return null;
-
   const top1 = rankings.find((p) => p.rank === 1);
   const top2 = rankings.find((p) => p.rank === 2);
   const top3 = rankings.find((p) => p.rank === 3);
@@ -110,7 +120,8 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md select-none overflow-y-auto">
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md select-none overflow-y-auto">
         <motion.div
           initial={{ scale: 0.88, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -325,16 +336,99 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
               </div>
             )}
 
-            {/* Botones de acción */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 mt-4">
+            {/* Banner de Estado de la Prueba Matemática */}
+            {!hasCompletedQuiz ? (
+              <motion.div
+                animate={{ scale: [1, 1.015, 1] }}
+                transition={{ repeat: Infinity, duration: 2.2 }}
+                className="my-3 p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-yellow-400/20 to-amber-500/20 border-2 border-amber-400/70 text-amber-200 text-xs sm:text-sm font-bold flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[0_0_30px_rgba(245,158,11,0.25)]"
+              >
+                <div className="flex items-center gap-2.5 text-left">
+                  <span className="p-2 rounded-xl bg-amber-400/30 text-amber-300 border border-amber-400/50 flex-shrink-0">
+                    <Brain className="w-5 h-5 animate-pulse" />
+                  </span>
+                  <div>
+                    <div className="font-black text-white text-xs sm:text-sm flex items-center gap-1.5">
+                      <span>Prueba Matemática Obligatoria</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black">
+                        Paso Requerido
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-amber-200/90 font-normal">
+                      Resuelve las cartas jugadas en la partida para desbloquear la revancha y salida a la sala.
+                    </p>
+                  </div>
+                </div>
+
+                {onOpenQuiz && (
+                  <button
+                    type="button"
+                    onClick={onOpenQuiz}
+                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-md whitespace-nowrap cursor-pointer transition active:scale-95"
+                  >
+                    Hacer Prueba Ahora ➔
+                  </button>
+                )}
+              </motion.div>
+            ) : (
+              <div className="my-3 p-3 rounded-2xl bg-emerald-950/80 border border-emerald-400/60 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 shadow-lg">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <span>
+                  ¡Prueba matemática completada! (+{quizCoinsEarned} 🪙 ganadas). Las opciones de revancha y salida están desbloqueadas.
+                </span>
+              </div>
+            )}
+
+            {/* Botones Especiales de Fin de Partida: Revisión de Jugadas y Desafío de Prueba */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 my-3.5">
+              {onOpenGameReview && (
+                <button
+                  type="button"
+                  onClick={onOpenGameReview}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-400/50 text-indigo-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition active:scale-95 cursor-pointer"
+                >
+                  <TrendingUp className="w-4 h-4 text-cyan-300" />
+                  <span>Revisión de Jugadas</span>
+                </button>
+              )}
+
+              {onOpenQuiz && (
+                !hasCompletedQuiz ? (
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    type="button"
+                    onClick={onOpenQuiz}
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-400/30 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Brain className="w-4 h-4 text-slate-950" />
+                    <span>Hacer Prueba (Obligatoria)</span>
+                  </motion.button>
+                ) : (
+                  <div className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-slate-900/90 border border-emerald-400/50 text-emerald-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 opacity-80 cursor-default">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>Prueba Realizada (+{quizCoinsEarned} 🪙) ✅</span>
+                  </div>
+                )
+              )}
+            </div>
+
+            {/* Botones de acción principales */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 mt-3">
               {isHost && (
                 <button
                   type="button"
-                  onClick={onRequestRematch}
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
+                  disabled={!hasCompletedQuiz}
+                  onClick={hasCompletedQuiz ? onRequestRematch : undefined}
+                  className={`w-full sm:w-auto px-5 py-2.5 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition ${
+                    hasCompletedQuiz
+                      ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white shadow-lg shadow-emerald-500/25 active:scale-95 cursor-pointer'
+                      : 'bg-slate-900 text-slate-500 border border-white/5 opacity-50 cursor-not-allowed'
+                  }`}
+                  title={!hasCompletedQuiz ? 'Debes completar la prueba matemática antes de jugar revancha' : undefined}
                 >
-                  <RotateCcw className="w-4 h-4" />
-                  Jugar Revancha
+                  {!hasCompletedQuiz ? <Lock className="w-4 h-4 text-amber-400" /> : <RotateCcw className="w-4 h-4" />}
+                  <span>{!hasCompletedQuiz ? 'Revancha Bloqueada' : 'Jugar Revancha'}</span>
                 </button>
               )}
 
@@ -351,16 +445,23 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
               <button
                 type="button"
-                onClick={onExit}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-600 text-slate-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
+                disabled={!hasCompletedQuiz}
+                onClick={hasCompletedQuiz ? onExit : undefined}
+                className={`w-full sm:w-auto px-5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition ${
+                  hasCompletedQuiz
+                    ? 'bg-slate-800/80 hover:bg-slate-700/80 border border-slate-600 text-slate-200 active:scale-95 cursor-pointer'
+                    : 'bg-slate-900 text-slate-500 border border-white/5 opacity-50 cursor-not-allowed'
+                }`}
+                title={!hasCompletedQuiz ? 'Debes completar la prueba matemática antes de salir' : undefined}
               >
-                <Home className="w-4 h-4" />
-                Salir a la Sala
+                {!hasCompletedQuiz ? <Lock className="w-4 h-4 text-amber-400" /> : <Home className="w-4 h-4" />}
+                <span>{!hasCompletedQuiz ? 'Salida Bloqueada' : 'Salir a la Sala'}</span>
               </button>
             </div>
           </div>
         </motion.div>
       </div>
+      )}
     </AnimatePresence>
   );
 };

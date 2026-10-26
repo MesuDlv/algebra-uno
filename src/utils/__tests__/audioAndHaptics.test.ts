@@ -33,6 +33,11 @@ describe('Utilidades de Sonido y Háptica (Fase 6)', () => {
         soundEffects.unoCall();
         soundEffects.attack();
         soundEffects.victory();
+        soundEffects.playBetunVoice();
+        soundEffects.stopBetunVoice();
+        soundEffects.quizCorrect();
+        soundEffects.quizIncorrect();
+        soundEffects.calculatorClick();
       }).not.toThrow();
     });
   });

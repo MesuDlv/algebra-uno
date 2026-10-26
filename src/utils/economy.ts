@@ -383,6 +383,9 @@ export function savePlayerEconomy(economy: PlayerEconomy): PlayerEconomy {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(ECONOMY_STORAGE_KEY, JSON.stringify(economy));
     }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('economy_updated'));
+    }
   } catch {
     // Fallback en entornos restringidos
   }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameRoom } from '../hooks/useGameRoom';
 import { OpponentsBar } from '../components/game/OpponentsBar';
@@ -10,6 +10,10 @@ import { CardZoomModal } from '../components/card/CardZoomModal';
 import { StartGameAnimation } from '../components/game/StartGameAnimation';
 import { DrawPenaltyAnimation } from '../components/game/DrawPenaltyAnimation';
 import { ActionAnnouncementModal, GameAnnouncement } from '../components/game/ActionAnnouncementModal';
+import { GameReviewModal } from '../components/game/GameReviewModal';
+import { PostMatchQuizModal, UserPlayedCardQuizItem } from '../components/game/PostMatchQuizModal';
+import { generateFullDeck } from '../engine/deckGenerator';
+import { analyzeMatchEvents } from '../utils/gameAnalysis';
 import { Card } from '../components/card/Card';
 import { Card as CardType, CardColor } from '../types/card';
 import { soundEffects } from '../utils/audio';
@@ -33,6 +37,7 @@ export const GamePage: React.FC<GamePageProps> = ({
   const {
     room,
     gameState,
+    events,
     presence,
     isHost,
     isMyTurn,
@@ -57,7 +62,91 @@ export const GamePage: React.FC<GamePageProps> = ({
   const [gameToast, setGameToast] = useState<string | null>(null);
   const [showExitModal, setShowExitModal] = useState<boolean>(false);
   const [showShop, setShowShop] = useState<boolean>(false);
+  const [showReviewModal, setShowReviewModal] = useState<boolean>(false);
+  const [showQuizModal, setShowQuizModal] = useState<boolean>(false);
+  const [hasCompletedQuiz, setHasCompletedQuiz] = useState<boolean>(false);
+  const [quizCoinsEarned, setQuizCoinsEarned] = useState<number>(0);
   const prevActionCounterRef = useRef<number>(0);
+
+  // Reiniciar estado de la prueba cuando empieza una nueva partida/ronda
+  useEffect(() => {
+    if (gameState.status === 'playing') {
+      setHasCompletedQuiz(false);
+      setQuizCoinsEarned(0);
+    }
+  }, [gameState.status]);
+
+  // Reporte de análisis táctico de jugadas generado a partir de los eventos deterministas
+  const matchReport = useMemo(() => {
+    return analyzeMatchEvents(events, currentUserUid);
+  }, [events, currentUserUid]);
+
+  // Extraer las cartas usadas específicamente por este usuario durante la partida para la prueba matemática
+  const userPlayedQuizItems: UserPlayedCardQuizItem[] = useMemo(() => {
+    const userMoves = matchReport.moves.filter(
+      (m) => m.playerUid === currentUserUid && m.cardPlayed
+    );
+
+    const items: UserPlayedCardQuizItem[] = [];
+    const seenExpressions = new Set<string>();
+
+    for (const move of userMoves) {
+      if (
+        move.cardPlayed &&
+        move.cardPlayed.expressionLatex &&
+        !seenExpressions.has(move.cardPlayed.expressionLatex)
+      ) {
+        seenExpressions.add(move.cardPlayed.expressionLatex);
+        items.push({
+          id: `quiz_user_${move.id}`,
+          turnNumber: move.moveNumber,
+          isUserPlayed: true,
+          card: move.cardPlayed,
+        });
+      }
+    }
+
+    // Si el usuario jugó pocas cartas numéricas/evaluables, complementar con cartas jugadas en la mesa
+    if (items.length < 4) {
+      const tableCards = (gameState.discardPile || []).filter(
+        (c) => c && c.expressionLatex && !seenExpressions.has(c.expressionLatex)
+      );
+      for (const card of tableCards) {
+        seenExpressions.add(card.expressionLatex);
+        items.push({
+          id: `quiz_table_${card.id}`,
+          turnNumber: undefined,
+          isUserPlayed: false,
+          card,
+        });
+        if (items.length >= 4) break;
+      }
+    }
+
+    // Fallback a cartas del mazo completo si la mesa tuvo muy pocas cartas
+    if (items.length < 4) {
+      try {
+        const fullDeck = generateFullDeck().filter(
+          (c) => c && c.expressionLatex && !seenExpressions.has(c.expressionLatex)
+        );
+        const shuffled = [...fullDeck].sort(() => Math.random() - 0.5);
+        for (const card of shuffled) {
+          seenExpressions.add(card.expressionLatex);
+          items.push({
+            id: `quiz_deck_${card.id}`,
+            turnNumber: undefined,
+            isUserPlayed: false,
+            card,
+          });
+          if (items.length >= 4) break;
+        }
+      } catch (err) {
+        console.warn('Fallback error for quiz cards:', err);
+      }
+    }
+
+    return items.slice(0, 4);
+  }, [matchReport.moves, currentUserUid, gameState.discardPile]);
   const [disconnectCountdown, setDisconnectCountdown] = useState<{
     uid: string;
     name: string;
@@ -844,7 +933,7 @@ export const GamePage: React.FC<GamePageProps> = ({
         onClose={() => setZoomedCard(null)}
       />
 
-      {/* Modal de Fin de Partida / Victoria */}
+      {/* Modal de Fin de Partida / Victoria (Podio) */}
       <VictoryModal
         isOpen={gameState.status === 'finished' && Boolean(winnerPlayer)}
         winnerName={winnerPlayer?.name || 'Jugador'}
@@ -862,6 +951,45 @@ export const GamePage: React.FC<GamePageProps> = ({
         onRequestRematch={requestRematch}
         onExit={handleExit}
         onOpenShop={() => setShowShop(true)}
+        onOpenGameReview={() => setShowReviewModal(true)}
+        onOpenQuiz={() => setShowQuizModal(true)}
+        hasCompletedQuiz={hasCompletedQuiz}
+        quizCoinsEarned={quizCoinsEarned}
+      />
+
+      {/* Modal de Revisión Táctica y Análisis de Partida */}
+      <GameReviewModal
+        isOpen={showReviewModal}
+        onClose={() => setShowReviewModal(false)}
+        report={matchReport}
+        onOpenPodium={() => setShowReviewModal(false)}
+        onOpenQuiz={() => {
+          setShowReviewModal(false);
+          setShowQuizModal(true);
+        }}
+        hasCompletedQuiz={hasCompletedQuiz}
+      />
+
+      {/* Modal de Prueba Matemática con Cartas Usadas en la Partida */}
+      <PostMatchQuizModal
+        isOpen={showQuizModal}
+        onClose={() => setShowQuizModal(false)}
+        onOpenPodium={() => setShowQuizModal(false)}
+        onOpenReview={() => {
+          setShowQuizModal(false);
+          setShowReviewModal(true);
+        }}
+        onFinish={() => {
+          setShowQuizModal(false);
+        }}
+        onExitToLobby={handleExit}
+        quizItems={userPlayedQuizItems}
+        hasAlreadyCompleted={hasCompletedQuiz}
+        earnedCoinsTotal={quizCoinsEarned}
+        onQuizCompleted={(coins) => {
+          setHasCompletedQuiz(true);
+          setQuizCoinsEarned(coins);
+        }}
       />
 
       {/* Modal de Tienda de Monedas y Recompensas */}

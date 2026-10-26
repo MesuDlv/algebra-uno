@@ -7,10 +7,11 @@ import {
   PlayerProfile,
 } from '../firebase/auth';
 import { createRoom, joinRoom, addBotToRoom } from '../firebase/roomService';
-import { Sparkles, Users, BookOpen, ArrowRight, PlusCircle, Check, Eye, Bot, Coins, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Sparkles, Users, BookOpen, ArrowRight, PlusCircle, Check, Eye, Bot, Coins, ShoppingBag, ChevronLeft, ChevronRight, GraduationCap } from 'lucide-react';
 import { getPlayerEconomy, SHOP_CATALOG, PlayerEconomy } from '../utils/economy';
 import { AvatarDisplay } from '../components/common/AvatarDisplay';
 import { ShopModal } from '../components/shop/ShopModal';
+import { BetunTutorialModal, hasSeenTutorial } from '../components/tutorial/BetunTutorialModal';
 
 interface LobbyPageProps {
   onJoinRoom: (roomId: string) => void;
@@ -30,6 +31,7 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [economy, setEconomy] = useState<PlayerEconomy>(() => getPlayerEconomy());
   const [showShop, setShowShop] = useState(false);
+  const [showTutorial, setShowTutorial] = useState<boolean>(() => !hasSeenTutorial());
   const avatarScrollRef = useRef<HTMLDivElement>(null);
 
   const scrollAvatars = (direction: 'left' | 'right') => {
@@ -48,6 +50,14 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
     if (roomParam) {
       setJoinCode(roomParam.toUpperCase());
     }
+
+    const handleEconomyUpdated = () => {
+      setEconomy(getPlayerEconomy());
+    };
+    window.addEventListener('economy_updated', handleEconomyUpdated);
+    return () => {
+      window.removeEventListener('economy_updated', handleEconomyUpdated);
+    };
   }, []);
 
   const handleNameChange = (name: string) => {
@@ -416,6 +426,16 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
           </div>
         </form>
 
+        {/* Botón Tutorial Interactivo con Betún */}
+        <button
+          type="button"
+          onClick={() => setShowTutorial(true)}
+          className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-yellow-400/20 to-amber-500/20 hover:from-amber-500/30 hover:to-yellow-400/30 border border-amber-400/50 text-amber-200 hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer backdrop-blur-sm shadow-md"
+        >
+          <GraduationCap className="w-4 h-4 text-yellow-300" />
+          <span>🎓 Tutorial con Betún (Aprende Álgebra UNO)</span>
+        </button>
+
         {/* Botón Galería de Cartas */}
         <button
           type="button"
@@ -426,6 +446,12 @@ export const LobbyPage: React.FC<LobbyPageProps> = ({ onJoinRoom, onOpenGallery 
           Explorar Galería de las 108 Cartas Algebraicas
         </button>
       </div>
+
+      {/* Modal de Tutorial con Betún */}
+      <BetunTutorialModal
+        isOpen={showTutorial}
+        onClose={() => setShowTutorial(false)}
+      />
 
       {/* Modal de Tienda */}
       <ShopModal

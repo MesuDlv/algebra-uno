@@ -3,6 +3,7 @@
  * Genera sonidos físicos de cartas (fricción de papel, impacto en mesa, barajeo real),
  * campanas armónicas y fanfarrias vibrantes, sin depender de archivos MP3 externos.
  */
+import betunVoiceAsset from '../assets/avatars/nino.mp3';
 
 const AUDIO_ENABLED_KEY = 'algebra_uno_sound_enabled';
 
@@ -564,6 +565,153 @@ class SoundEffectsManager {
       // Ignorar
     }
   }
+
+  private betunAudio: HTMLAudioElement | null = null;
+
+  /**
+   * Reproduce la voz característica de Betún (audio MP3 nino.mp3)
+   */
+  public playBetunVoice(onEnded?: () => void): HTMLAudioElement | null {
+    if (!this.isEnabled) {
+      if (onEnded) onEnded();
+      return null;
+    }
+    try {
+      if (typeof Audio !== 'undefined') {
+        if (!this.betunAudio) {
+          const baseUrl = typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL ? import.meta.env.BASE_URL : '/';
+          const src = betunVoiceAsset || `${baseUrl}avatars/nino.mp3`;
+          this.betunAudio = new Audio(src);
+        }
+        this.betunAudio.pause();
+        this.betunAudio.currentTime = 0;
+        this.betunAudio.volume = 0.95;
+
+        this.betunAudio.onended = () => {
+          if (onEnded) onEnded();
+        };
+
+        const playPromise = this.betunAudio.play();
+        if (playPromise) {
+          playPromise.catch(() => {
+            if (onEnded) onEnded();
+          });
+        }
+        return this.betunAudio;
+      }
+    } catch {
+      if (onEnded) onEnded();
+    }
+    return null;
+  }
+
+  public stopBetunVoice() {
+    try {
+      if (this.betunAudio) {
+        this.betunAudio.pause();
+        this.betunAudio.currentTime = 0;
+      }
+    } catch {
+      // Ignorar
+    }
+  }
+
+  /**
+   * Sonido de respuesta correcta en la prueba matemática (+Monedas)
+   */
+  public quizCorrect() {
+    if (!this.isEnabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+      const now = ctx.currentTime;
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const noteTime = now + idx * 0.08;
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, noteTime);
+
+        gain.gain.setValueAtTime(0.18, noteTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.25);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(noteTime);
+        osc.stop(noteTime + 0.26);
+      });
+    } catch {
+      // Ignorar
+    }
+  }
+
+  /**
+   * Sonido de respuesta incorrecta en la prueba matemática
+   */
+  public quizIncorrect() {
+    if (!this.isEnabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.setValueAtTime(110, now + 0.12);
+
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } catch {
+      // Ignorar
+    }
+  }
+
+  /**
+   * Sonido sutil de pulsación de tecla de calculadora
+   */
+  public calculatorClick() {
+    if (!this.isEnabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(900, now);
+      osc.frequency.exponentialRampToValueAtTime(400, now + 0.03);
+
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.04);
+    } catch {
+      // Ignorar
+    }
+  }
 }
 
 export const soundEffects = new SoundEffectsManager();
+
+export const playBetunVoice = (onEnded?: () => void) => soundEffects.playBetunVoice(onEnded);
+export const stopBetunVoice = () => soundEffects.stopBetunVoice();
+
