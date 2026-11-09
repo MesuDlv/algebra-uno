@@ -42,6 +42,7 @@ import elTigreAsset from '../assets/avatars/El_tigre.jpg';
 import proyectadaDeCuerpoAsset from '../assets/avatars/Proyectada_de_cuerpo.jpg';
 import uribeAsset from '../assets/avatars/Uribe.jpg';
 import winniePoohAsset from '../assets/avatars/winnie_pooh.jpg';
+import calzadoGuerreroAsset from '../assets/avatars/Zapatos de hernan.jpg';
 
 const ECONOMY_STORAGE_KEY = 'algebra_uno_player_economy';
 
@@ -54,6 +55,15 @@ export const SHOP_CATALOG: ShopItem[] = [
     value: patriaMilagroAsset,
     price: 2500,
     description: 'Avatar legendario del Patriota. Demuestra tu devoción y disciplina algebraica en la mesa.',
+    rarity: 'legendario',
+  },
+  {
+    id: 'avatar_calzado_guerrero',
+    name: 'Calzado de un formidable guerrero',
+    type: 'avatar',
+    value: calzadoGuerreroAsset,
+    price: 2500,
+    description: 'Avatar legendario del Calzado de un formidable guerrero. Pisa fuerte y derrota a tus rivales con pasos matemáticos implacables.',
     rarity: 'legendario',
   },
   {
@@ -501,7 +511,7 @@ export function recordMatchReward(
  * Compra un ítem de la tienda con monedas.
  */
 export function purchaseShopItem(itemId: string): { success: boolean; message: string; updatedItem?: ShopItem } {
-  const item = SHOP_CATALOG.find((i) => i.id === itemId);
+  const item = SHOP_CATALOG.find((i) => i.id === itemId || (itemId === 'avatar_zapatos_hernan' && i.id === 'avatar_calzado_guerrero'));
   if (!item) {
     return { success: false, message: 'El ítem no existe en el catálogo.' };
   }

@@ -28,6 +28,13 @@ describe('Calibración de Avatares y Música Legendaria', () => {
       expect(posId).toBe('center 32%');
     });
 
+    it('ubica el calzado de un formidable guerrero centrado', () => {
+      const posId = getAvatarObjectPosition('avatar_calzado_guerrero');
+      const posHernan = getAvatarObjectPosition('avatar_zapatos_hernan');
+      expect(posId).toBe('center center');
+      expect(posHernan).toBe('center center');
+    });
+
     it('retorna center center para avatares genéricos o no definidos', () => {
       expect(getAvatarObjectPosition(undefined)).toBe('center center');
       expect(getAvatarObjectPosition('👤')).toBe('center center');
@@ -39,6 +46,8 @@ describe('Calibración de Avatares y Música Legendaria', () => {
       expect(resolveAvatarUrl('avatar_sixsevenaldo')).toBeTruthy();
       expect(resolveAvatarUrl('avatar_jesus_al_cuadrado')).toBeTruthy();
       expect(resolveAvatarUrl('avatar_patria_milagro')).toBeTruthy();
+      expect(resolveAvatarUrl('avatar_calzado_guerrero')).toBeTruthy();
+      expect(resolveAvatarUrl('avatar_zapatos_hernan')).toBeTruthy();
       expect(resolveAvatarUrl('avatar_nino_betun')).toBeTruthy();
       expect(resolveAvatarUrl('avatar_el_tigre')).toBeTruthy();
       expect(resolveAvatarUrl('avatar_proyectada_de_cuerpo')).toBeTruthy();

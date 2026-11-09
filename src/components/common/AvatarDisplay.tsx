@@ -7,9 +7,11 @@ import elTigreAsset from '../../assets/avatars/El_tigre.jpg';
 import proyectadaDeCuerpoAsset from '../../assets/avatars/Proyectada_de_cuerpo.jpg';
 import uribeAsset from '../../assets/avatars/Uribe.jpg';
 import winniePoohAsset from '../../assets/avatars/winnie_pooh.jpg';
+import calzadoGuerreroAsset from '../../assets/avatars/Zapatos de hernan.jpg';
 
 export {
   patriaMilagroAsset,
+  calzadoGuerreroAsset,
   ninoBetunAsset,
   sixsevenaldoAsset,
   jesusAlCuadradoAsset,
@@ -82,11 +84,38 @@ export function getAvatarObjectPosition(avatar?: string): string {
     return 'center 25%';
   }
 
+  // Calzado de un formidable guerrero (Zapatos de Hernán)
+  if (
+    avatar === 'avatar_calzado_guerrero' ||
+    avatar === 'avatar_zapatos_hernan' ||
+    avatar.includes('calzado_guerrero') ||
+    avatar.includes('zapatos_hernan') ||
+    avatar.includes('Zapatos de hernan') ||
+    avatar.toLowerCase().includes('calzado') ||
+    avatar.toLowerCase().includes('zapatos') ||
+    avatar.toLowerCase().includes('hernan')
+  ) {
+    return 'center center';
+  }
+
   return 'center center';
 }
 
 export function resolveAvatarUrl(avatar?: string): string | null {
   if (!avatar) return null;
+  // Calzado de un formidable guerrero (Zapatos de Hernán)
+  if (
+    avatar === 'avatar_calzado_guerrero' ||
+    avatar === 'avatar_zapatos_hernan' ||
+    avatar.includes('calzado_guerrero') ||
+    avatar.includes('zapatos_hernan') ||
+    avatar.includes('Zapatos de hernan') ||
+    avatar.toLowerCase().includes('calzado') ||
+    avatar.toLowerCase().includes('zapatos') ||
+    avatar.toLowerCase().includes('hernan')
+  ) {
+    return calzadoGuerreroAsset;
+  }
   // Patria Milagro
   if (avatar === 'avatar_patria_milagro' || avatar.includes('patria_milagro')) {
     return patriaMilagroAsset;

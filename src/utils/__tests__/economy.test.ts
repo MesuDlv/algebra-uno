@@ -105,13 +105,20 @@ describe('Sistema de Economía y Monedas (economy.ts)', () => {
   describe('Tienda y Compra de Recompensas', () => {
     it('incluye los avatares especiales en el catálogo con sus rarezas y rutas', () => {
       const avatarItems = SHOP_CATALOG.filter((i) => i.type === 'avatar');
-      expect(avatarItems).toHaveLength(8);
+      expect(avatarItems).toHaveLength(9);
 
       const patriaItem = SHOP_CATALOG.find((i) => i.id === 'avatar_patria_milagro');
       expect(patriaItem).toBeDefined();
       expect(patriaItem?.value).toContain('patria_milagro');
       expect(patriaItem?.price).toBe(2500);
       expect(patriaItem?.rarity).toBe('legendario');
+
+      const calzadoItem = SHOP_CATALOG.find((i) => i.id === 'avatar_calzado_guerrero');
+      expect(calzadoItem).toBeDefined();
+      expect(calzadoItem?.name).toBe('Calzado de un formidable guerrero');
+      expect(calzadoItem?.price).toBe(2500);
+      expect(calzadoItem?.rarity).toBe('legendario');
+      expect(calzadoItem?.value).toBeTruthy();
 
       const sixsevenaldoItem = SHOP_CATALOG.find((i) => i.id === 'avatar_sixsevenaldo');
       expect(sixsevenaldoItem).toBeDefined();
@@ -161,9 +168,9 @@ describe('Sistema de Economía y Monedas (economy.ts)', () => {
       expect(ninoBetunItem?.codeOnly).toBe(true);
       expect(ninoBetunItem?.hidden).toBe(true);
 
-      // Los avatares públicos de la tienda muestran los 7 avatares no ocultos
+      // Los avatares públicos de la tienda muestran los 8 avatares no ocultos
       const visibleAvatars = SHOP_CATALOG.filter((i) => i.type === 'avatar' && !i.hidden);
-      expect(visibleAvatars).toHaveLength(7);
+      expect(visibleAvatars).toHaveLength(8);
 
       // Incluye las pistas de música configuradas (públicas y secretas)
       const musicItems = SHOP_CATALOG.filter((i) => i.type === 'music');
@@ -250,6 +257,27 @@ describe('Sistema de Economía y Monedas (economy.ts)', () => {
       const updated = getPlayerEconomy();
       expect(updated.coins).toBe(1500); // 3000 - 1500
       expect(updated.unlockedAvatars).toContain('avatar_sixsevenaldo');
+    });
+
+    it('permite comprar el avatar legendario Calzado de un formidable guerrero (incluso por alias)', () => {
+      savePlayerEconomy({
+        coins: 5000,
+        victories: 3,
+        gamesPlayed: 6,
+        unlockedAvatars: [],
+        unlockedMusic: [],
+        equippedMusic: null,
+        equippedPlaylist: [],
+        redeemedCodes: [],
+      });
+
+      const res = purchaseShopItem('avatar_zapatos_hernan');
+      expect(res.success).toBe(true);
+      expect(res.message).toContain('Calzado de un formidable guerrero');
+
+      const updated = getPlayerEconomy();
+      expect(updated.coins).toBe(2500); // 5000 - 2500
+      expect(updated.unlockedAvatars).toContain('avatar_calzado_guerrero');
     });
 
     it('no permite comprar con monedas un avatar exclusivo de código (Niño Betún)', () => {
